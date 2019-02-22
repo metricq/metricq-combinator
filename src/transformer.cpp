@@ -113,7 +113,7 @@ void Transformer::on_data(const std::string& input_metric, const metricq::DataCh
             {
                 node_input->put(tv);
             }
-            Log::debug() << fmt::format("└── Put data into queue ({:p}), now has length {}",
+            Log::trace() << fmt::format("└── Put data into queue ({:p}), now has length {}",
                                         (void*)node_input, node_input->queue_length());
         }
 
