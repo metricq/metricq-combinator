@@ -32,8 +32,6 @@
 #include <variant>
 #include <vector>
 
-using json = metricq::json;
-
 class CombinedMetric
 {
 public:
@@ -67,7 +65,7 @@ public:
     };
 
 public:
-    CombinedMetric(const json&);
+    CombinedMetric(const metricq::json&);
     CombinedMetric(CombinedMetric&&) = default;
 
     NodeInput& as_input()
@@ -93,7 +91,7 @@ private:
 
     using Input = std::variant<MetricInput, ConstantInput, std::unique_ptr<CombinedMetric>>;
 
-    static Input parse_input(const json&);
+    static Input parse_input(const metricq::json&);
     static std::unique_ptr<CalculationNode> parse_calc_node(const std::string&);
 
     static NodeInput& get_updated_input(Input& input);

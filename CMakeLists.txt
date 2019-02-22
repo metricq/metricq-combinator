@@ -26,18 +26,12 @@ target_link_libraries(metricq-combinator-lib
         Nitro::jiffy
 )
 
-
-target_include_directories(metricq-combinator-lib
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/metricq-combinator>
-        # include/metricq-combinator
-)
-target_compile_features(metricq-combinator-lib PRIVATE cxx_std_17)
-target_compile_options(metricq-combinator-lib PRIVATE -Wall -Wextra -pedantic)
+target_compile_features(metricq-combinator-lib PUBLIC cxx_std_17)
+target_compile_options(metricq-combinator-lib PUBLIC -Wall -Wextra -pedantic)
 
 add_executable(metricq-combinator src/main.cpp)
 target_link_libraries(metricq-combinator
-    PRIVATE
+    PUBLIC
         metricq-combinator-lib
 )
 

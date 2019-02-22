@@ -3,7 +3,7 @@
 
 #include <metricq/json.hpp>
 
-#include "combined_metric.hpp"
+#include "../src/combined_metric.hpp"
 
 static std::ostream& operator<<(std::ostream& os, metricq::TimeValue tv)
 {

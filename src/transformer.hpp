@@ -56,11 +56,11 @@ private:
     struct CombinedMetricContainer
     {
     private:
-        CombinedMetricContainer(const json& config)
+        CombinedMetricContainer(const metricq::json& config)
         : metric(config), inputs(metric.collect_metric_inputs()){};
 
     public:
-        static CombinedMetricContainer from_config(const json& config)
+        static CombinedMetricContainer from_config(const metricq::json& config)
         {
             return CombinedMetricContainer(config);
         }

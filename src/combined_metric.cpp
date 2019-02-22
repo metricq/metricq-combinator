@@ -19,7 +19,7 @@
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "combined_metric.hpp"
 
-#include <nlohmann/json.hpp>
+#include <metricq/json.hpp>
 
 #include <cassert>
 #include <ostream>
@@ -50,7 +50,7 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::stri
     }
 }
 
-CombinedMetric::Input CombinedMetric::parse_input(const json& config)
+CombinedMetric::Input CombinedMetric::parse_input(const metricq::json& config)
 {
     try
     {
@@ -71,7 +71,7 @@ CombinedMetric::Input CombinedMetric::parse_input(const json& config)
             throw ParseError("invalid configuration for metric input: ", config.dump());
         }
     }
-    catch (const json::exception& e)
+    catch (const metricq::json::exception& e)
     {
         throw ParseError("failed to parse configuration: {}", e.what());
     }
@@ -80,7 +80,7 @@ CombinedMetric::Input CombinedMetric::parse_input(const json& config)
 // TODO: Check that not both of left_ and right_ are ConstantInput.
 // Otherwise the update algorithm will constantly try to update the
 // CombinedMetric, since both of its inputs have values ready.
-CombinedMetric::CombinedMetric(const json& config)
+CombinedMetric::CombinedMetric(const metricq::json& config)
 : left_(parse_input(config.at("left"))), right_(parse_input(config.at("right"))),
   node_(parse_calc_node(config.at("operation").get<std::string>()))
 {

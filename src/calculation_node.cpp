@@ -21,6 +21,8 @@
 
 #include "log.hpp"
 
+#include <metricq/types.hpp>
+
 #include <fmt/format.h>
 
 using Log = combinator_log::Log;
