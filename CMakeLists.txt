@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.8)
 
 project(metricq-combinator VERSION 0.1)
 
+include(cmake/DefaultBuildType.cmake)
+include(cmake/GitSubmoduleUpdate.cmake)
+git_submodule_update()
+
 add_subdirectory(lib/metricq)
 add_subdirectory(lib/nitro)
 
