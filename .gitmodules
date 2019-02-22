@@ -1,0 +1,9 @@
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = git@github.com:fmtlib/fmt.git
+[submodule "lib/metricq"]
+	path = lib/metricq
+	url = git@github.com:metricq/metricq
+[submodule "lib/nitro"]
+	path = lib/nitro
+	url = https://github.com/tud-zih-energy/nitro.git
