@@ -27,37 +27,51 @@
 
 using Log = combinator_log::Log;
 
-void CalculationNode::calculate(NodeInput& left, NodeInput& right, NodeOutput& output)
+void CalculationNode::update()
 {
-    while (left.has_input() && right.has_input())
+    left_->update();
+    right_->update();
+
+    while (left_->has_input() && right_->has_input())
     {
-        auto l = left.peek();
-        auto r = right.peek();
+        auto l = left_->peek();
+        auto r = right_->peek();
 
         metricq::TimePoint new_time;
         {
             if (l.time < r.time)
             {
                 new_time = l.time;
-                left.discard();
+                left_->discard();
             }
             else if (l.time > r.time)
             {
                 new_time = r.time;
-                right.discard();
+                right_->discard();
             }
             else // (l.time == r.time)
             {
                 new_time = l.time;
-                left.discard();
-                right.discard();
+                left_->discard();
+                right_->discard();
             }
         }
 
         auto new_value = combine(l.value, r.value);
 
-        output.put(metricq::TimeValue{ new_time, new_value });
+        put(metricq::TimeValue{ new_time, new_value });
     }
     Log::trace() << fmt::format("Remaining queued values: {{ left: {}, right: {}, output: {} }}",
-                                left.queue_length(), right.queue_length(), output.queue_length());
+                                left_->queue_length(), right_->queue_length(), queue_length());
+}
+
+void MetricInput::collect_metric_inputs(MetricInputsByName& inputs)
+{
+    inputs[name_].emplace_back(this);
+}
+
+void CalculationNode::collect_metric_inputs(MetricInputsByName& inputs)
+{
+    left_->collect_metric_inputs(inputs);
+    right_->collect_metric_inputs(inputs);
 }

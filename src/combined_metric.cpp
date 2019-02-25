@@ -24,47 +24,51 @@
 #include <cassert>
 #include <ostream>
 
-std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::string& opstr)
+std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::string& opstr,
+                                                                 std::unique_ptr<NodeInput> left,
+                                                                 std::unique_ptr<NodeInput> right)
 {
     if (opstr.length() != 1)
     {
-        throw CombinedMetric::ParseError("unknown operation '{}'", opstr);
+        throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
     }
 
     switch (opstr[0])
     {
     case '+':
-        return std::make_unique<AddNode>();
-        break;
+        return std::make_unique<AddNode>(std::move(left), std::move(right));
     case '-':
-        return std::make_unique<SubtractNode>();
-        break;
+        return std::make_unique<SubtractNode>(std::move(left), std::move(right));
     case '*':
-        return std::make_unique<MultipyNode>();
-        break;
+        return std::make_unique<MultipyNode>(std::move(left), std::move(right));
     case '/':
-        return std::make_unique<DivideNode>();
-        break;
+        return std::make_unique<DivideNode>(std::move(left), std::move(right));
     default:
         throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
     }
 }
 
-CombinedMetric::Input CombinedMetric::parse_input(const metricq::json& config)
+std::unique_ptr<NodeInput> CombinedMetric::parse_input(const metricq::json& config)
 {
     try
     {
         if (config.is_number())
         {
-            return { ConstantInput(config.get<double>()) };
+            return std::make_unique<ConstantInput>(config.get<double>());
         }
         else if (config.is_string())
         {
-            return { MetricInput(config.get<std::string>()) };
+            return std::make_unique<MetricInput>(config.get<std::string>());
         }
         else if (config.is_object())
         {
-            return { std::make_unique<CombinedMetric>(config) };
+            // TODO: Check that not both of left and right are ConstantInput.
+            // Otherwise the update algorithm will constantly try to update the
+            // CombinedMetric, since both of its inputs have values ready.
+            std::unique_ptr<NodeInput> left = parse_input(config.at("left"));
+            std::unique_ptr<NodeInput> right = parse_input(config.at("right"));
+
+            return parse_calc_node(config.at("operation"), std::move(left), std::move(right));
         }
         else
         {
@@ -77,102 +81,18 @@ CombinedMetric::Input CombinedMetric::parse_input(const metricq::json& config)
     }
 }
 
-// TODO: Check that not both of left_ and right_ are ConstantInput.
-// Otherwise the update algorithm will constantly try to update the
-// CombinedMetric, since both of its inputs have values ready.
-CombinedMetric::CombinedMetric(const metricq::json& config)
-: left_(parse_input(config.at("left"))), right_(parse_input(config.at("right"))),
-  node_(parse_calc_node(config.at("operation").get<std::string>()))
+CombinedMetric::CombinedMetric(const metricq::json& config) : input_(parse_input(config))
 {
 }
 
-NodeInput& CombinedMetric::get_updated_input(Input& input)
+void CombinedMetric::update()
 {
-    struct get_inputs
-    {
-        NodeInput& operator()(MetricInput& metric)
-        {
-            return metric;
-        }
-
-        NodeInput& operator()(ConstantInput& constant)
-        {
-            return constant;
-        }
-
-        NodeInput& operator()(const std::unique_ptr<CombinedMetric>& combined)
-        {
-            combined->calculate();
-            return combined->as_input();
-        }
-    };
-
-    return std::visit(get_inputs{}, input);
+    input_->update();
 }
 
-void CombinedMetric::calculate()
+NodeInput::MetricInputsByName CombinedMetric::collect_metric_inputs()
 {
-    node_->calculate(get_updated_input(left_), get_updated_input(right_), result_queue_);
-}
-
-CombinedMetric::MetricInputsByName CombinedMetric::collect_metric_inputs()
-{
-    MetricInputsByName inputs;
-    collect_metric_inputs(inputs);
+    NodeInput::MetricInputsByName inputs;
+    input_->collect_metric_inputs(inputs);
     return inputs;
-}
-
-void CombinedMetric::collect_metric_inputs(MetricInputsByName& metric_input)
-{
-    struct metric_input_collector
-    {
-        void operator()(MetricInput& metric)
-        {
-            collected_inputs[metric.name()].push_back(&metric);
-        }
-
-        void operator()(ConstantInput&)
-        {
-        }
-
-        void operator()(const std::unique_ptr<CombinedMetric>& combined)
-        {
-            combined->collect_metric_inputs(collected_inputs);
-        }
-
-        MetricInputsByName& collected_inputs;
-    };
-
-    std::visit(metric_input_collector{ metric_input }, left_);
-    std::visit(metric_input_collector{ metric_input }, right_);
-}
-
-std::ostream& operator<<(std::ostream& os, const CombinedMetric& metric)
-{
-    struct print
-    {
-        std::ostream& operator()(const CombinedMetric::MetricInput& metric)
-        {
-            return os << metric.name();
-        }
-
-        std::ostream& operator()(const ConstantInput& constant)
-        {
-            return os << constant.get_constant().value;
-        }
-
-        std::ostream& operator()(const std::unique_ptr<CombinedMetric>& combined)
-        {
-            return os << *combined;
-        }
-
-        std::ostream& os;
-    };
-
-    os << "(";
-    std::visit(print{ os }, metric.left_);
-    os << " ??? ";
-    std::visit(print{ os }, metric.right_);
-    os << ")";
-    return os;
 }

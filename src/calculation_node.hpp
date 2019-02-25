@@ -21,9 +21,13 @@
 
 #include "timestamp.hpp"
 
+#include <metricq/json.hpp>
+
 #include <deque>
 #include <memory>
-#include <optional>
+#include <vector>
+
+class MetricInput;
 
 struct NodeInput
 {
@@ -31,13 +35,22 @@ struct NodeInput
     virtual metricq::TimeValue peek() const = 0;
     virtual void discard() = 0;
 
+    virtual void update()
+    {
+    }
+
+    using MetricInputsByName = std::unordered_map<std::string, std::vector<MetricInput*>>;
+
+    virtual void collect_metric_inputs(MetricInputsByName&)
+    {
+    }
+
     virtual std::size_t queue_length() const = 0;
 };
 
 struct NodeOutput
 {
     virtual void put(metricq::TimeValue value) = 0;
-
     virtual std::size_t queue_length() const = 0;
 };
 
@@ -108,6 +121,24 @@ private:
     metricq::TimeValue time_value_;
 };
 
+class MetricInput : public NodeInOutQueue
+{
+public:
+    MetricInput(const std::string& name) : name_(name)
+    {
+    }
+
+    void collect_metric_inputs(MetricInputsByName&) override;
+
+    const std::string& name() const
+    {
+        return name_;
+    }
+
+private:
+    std::string name_;
+};
+
 class SinglyBufferedInput : public NodeInOutQueue
 {
 public:
@@ -140,13 +171,22 @@ private:
     metricq::TimeValue buffered_value_;
 };
 
-struct CalculationNode
+struct CalculationNode : NodeInOutQueue
 {
-private:
+public:
+    CalculationNode(std::unique_ptr<NodeInput> left, std::unique_ptr<NodeInput> right)
+    : left_(std::move(left)), right_(std::move(right))
+    {
+    }
+
+    void update() override;
     virtual metricq::Value combine(metricq::Value a, metricq::Value b) = 0;
 
-public:
-    void calculate(NodeInput& left, NodeInput& right, NodeOutput& output);
+    void collect_metric_inputs(MetricInputsByName&) override;
+
+private:
+    std::unique_ptr<NodeInput> left_;
+    std::unique_ptr<NodeInput> right_;
 };
 
 class AddNode : public CalculationNode
@@ -155,6 +195,9 @@ class AddNode : public CalculationNode
     {
         return a + b;
     }
+
+public:
+    using CalculationNode::CalculationNode;
 };
 
 class SubtractNode : public CalculationNode
@@ -163,6 +206,9 @@ class SubtractNode : public CalculationNode
     {
         return a - b;
     }
+
+public:
+    using CalculationNode::CalculationNode;
 };
 
 class MultipyNode : public CalculationNode
@@ -171,6 +217,9 @@ class MultipyNode : public CalculationNode
     {
         return a * b;
     }
+
+public:
+    using CalculationNode::CalculationNode;
 };
 
 class DivideNode : public CalculationNode
@@ -179,4 +228,7 @@ class DivideNode : public CalculationNode
     {
         return a / b;
     }
+
+public:
+    using CalculationNode::CalculationNode;
 };

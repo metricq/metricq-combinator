@@ -48,59 +48,30 @@ public:
     };
 
 public:
-    class MetricInput : public NodeInOutQueue
-    {
-    public:
-        MetricInput(const std::string& name) : name_(name)
-        {
-        }
-
-        const std::string& name() const
-        {
-            return name_;
-        }
-
-    private:
-        std::string name_;
-    };
-
-public:
     CombinedMetric(const metricq::json&);
     CombinedMetric(CombinedMetric&&) = default;
 
-    NodeInput& as_input()
-    {
-        return result_queue_;
-    }
+    void update();
 
-    NodeOutput& as_output()
+    NodeInput& input()
     {
-        return result_queue_;
+        return *input_;
     }
-
-    void calculate();
 
     friend std::ostream& operator<<(std::ostream&, const CombinedMetric&);
 
-    using MetricInputsByName = std::unordered_map<std::string, std::vector<MetricInput*>>;
-
-    MetricInputsByName collect_metric_inputs();
+    NodeInput::MetricInputsByName collect_metric_inputs();
 
 private:
-    void collect_metric_inputs(MetricInputsByName& inputs);
+    // using Input = std::variant<MetricInput, ConstantInput, std::unique_ptr<CombinedMetric>>;
 
-    using Input = std::variant<MetricInput, ConstantInput, std::unique_ptr<CombinedMetric>>;
-
-    static Input parse_input(const metricq::json&);
-    static std::unique_ptr<CalculationNode> parse_calc_node(const std::string&);
-
-    static NodeInput& get_updated_input(Input& input);
+    static std::unique_ptr<NodeInput> parse_input(const metricq::json&);
+    static std::unique_ptr<CalculationNode> parse_calc_node(const std::string& opstr,
+                                                            std::unique_ptr<NodeInput> left,
+                                                            std::unique_ptr<NodeInput> right);
 
 private:
-    Input left_;
-    Input right_;
-    std::unique_ptr<CalculationNode> node_;
-    NodeInOutQueue result_queue_;
+    std::unique_ptr<NodeInput> input_;
 };
 
 std::ostream& operator<<(std::ostream&, const CombinedMetric&);

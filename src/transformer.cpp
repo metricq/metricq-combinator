@@ -54,9 +54,6 @@ void Transformer::on_transformer_config(const metricq::json& config)
         auto& combined_config = it.value();
         auto combined_name = it.key();
 
-        // Log::info() << "Deriving new metric: " << combined_name << " := " <<
-        // combined_metric;
-
         auto [container_it, success] = combined_metrics_.emplace(
             combined_name, CombinedMetricContainer::from_config(combined_config));
 
@@ -69,7 +66,8 @@ void Transformer::on_transformer_config(const metricq::json& config)
 
         auto& combined_metric = container_it->second.metric;
 
-        Log::info() << "Deriving new metric: " << combined_name << " := " << combined_metric;
+        // Log::info() << "Deriving new metric: " << combined_name << " := " << combined_metric;
+        Log::info() << "Deriving new metric: " << combined_name;
 
         // Register input metrics with sink
         for (const auto& [input_name, _] : combined_metric.collect_metric_inputs())
@@ -107,7 +105,7 @@ void Transformer::on_data(const std::string& input_metric, const metricq::DataCh
 
         Log::trace() << "└── Yes, it does.";
         auto& input_list = inputs->second;
-        for (CombinedMetric::MetricInput* node_input : input_list)
+        for (MetricInput* node_input : input_list)
         {
             for (metricq::TimeValue tv : data)
             {
@@ -117,10 +115,10 @@ void Transformer::on_data(const std::string& input_metric, const metricq::DataCh
                                         (void*)node_input, node_input->queue_length());
         }
 
-        combined_metric.calculate();
+        combined_metric.update();
 
         auto& metricq_metric = get_combined_metric(combined_name);
-        NodeInput& input = combined_metric.as_input();
+        NodeInput& input = combined_metric.input();
         while (input.has_input())
         {
             metricq_metric.send(input.peek());

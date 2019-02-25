@@ -21,14 +21,14 @@ static void check(bool passed)
 }
 
 template <std::size_t N>
-static void check_and_fill_input(CombinedMetric::MetricInputsByName& input_map, const char* name,
+static void check_and_fill_input(NodeInput::MetricInputsByName& input_map, const char* name,
                                  const metricq::TimeValue (&tvs)[N])
 {
     auto inputs_it = input_map.find(name);
     std::cerr << "Checking for input " << name << "...\n";
     check(inputs_it != input_map.end());
 
-    std::vector<CombinedMetric::MetricInput*>& inputs_for_name = inputs_it->second;
+    std::vector<MetricInput*>& inputs_for_name = inputs_it->second;
     std::cerr << "Checking that input occurs only once...\n";
     check(inputs_for_name.size() == 1);
 
@@ -59,7 +59,7 @@ constexpr metricq::TimeValue EXPECTED_OUTPUT[] = { { t(1), 2.0 }, { t(2), 4.0 },
 
 int main()
 {
-    json config = {
+    metricq::json config = {
         { "operation", "+" },
         { "left", "foo" },
         { "right", "bar" },
@@ -67,26 +67,26 @@ int main()
 
     CombinedMetric combined(config);
 
-    CombinedMetric::MetricInputsByName inputs = combined.collect_metric_inputs();
+    NodeInput::MetricInputsByName inputs = combined.collect_metric_inputs();
 
     check_and_fill_input(inputs, "foo", FOO_INPUT);
     check_and_fill_input(inputs, "bar", BAR_INPUT);
 
-    std::cerr << "Calculating combined metrics...\n";
-    combined.calculate();
+    std::cerr << "Updating combined metrics...\n";
+    combined.update();
 
-    auto& output = combined.as_input();
+    auto& input = combined.input();
     std::cerr << "Checking that output has correct length...\n";
-    check(output.queue_length() == 3);
+    check(input.queue_length() == 3);
 
     std::cerr << "Checking that output values are correct...\n";
     for (auto tv :
          std::initializer_list<metricq::TimeValue>{ { t(1), 2.0 }, { t(2), 4.0 }, { t(3), 5.0 } })
     {
-        metricq::TimeValue out = output.peek();
+        metricq::TimeValue out = input.peek();
         std::cerr << "`-- Checking: " << tv << " == " << out << '\n';
         check(tv.time == out.time && tv.value == out.value);
-        output.discard();
+        input.discard();
     }
 
     return 0;
