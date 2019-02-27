@@ -53,25 +53,23 @@ public:
 
     void update();
 
-    NodeInput& input()
+    InputNode& input()
     {
         return *input_;
     }
 
     friend std::ostream& operator<<(std::ostream&, const CombinedMetric&);
 
-    NodeInput::MetricInputsByName collect_metric_inputs();
+    MetricInputNodesByName collect_metric_inputs();
 
 private:
-    // using Input = std::variant<MetricInput, ConstantInput, std::unique_ptr<CombinedMetric>>;
-
-    static std::unique_ptr<NodeInput> parse_input(const metricq::json&);
+    static std::unique_ptr<InputNode> parse_input(const metricq::json&);
     static std::unique_ptr<CalculationNode> parse_calc_node(const std::string& opstr,
-                                                            std::unique_ptr<NodeInput> left,
-                                                            std::unique_ptr<NodeInput> right);
+                                                            std::unique_ptr<InputNode> left,
+                                                            std::unique_ptr<InputNode> right);
 
 private:
-    std::unique_ptr<NodeInput> input_;
+    std::unique_ptr<InputNode> input_;
 };
 
 std::ostream& operator<<(std::ostream&, const CombinedMetric&);

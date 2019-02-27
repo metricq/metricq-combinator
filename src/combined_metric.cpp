@@ -25,8 +25,8 @@
 #include <ostream>
 
 std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::string& opstr,
-                                                                 std::unique_ptr<NodeInput> left,
-                                                                 std::unique_ptr<NodeInput> right)
+                                                                 std::unique_ptr<InputNode> left,
+                                                                 std::unique_ptr<InputNode> right)
 {
     if (opstr.length() != 1)
     {
@@ -48,7 +48,7 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::stri
     }
 }
 
-std::unique_ptr<NodeInput> CombinedMetric::parse_input(const metricq::json& config)
+std::unique_ptr<InputNode> CombinedMetric::parse_input(const metricq::json& config)
 {
     try
     {
@@ -58,15 +58,15 @@ std::unique_ptr<NodeInput> CombinedMetric::parse_input(const metricq::json& conf
         }
         else if (config.is_string())
         {
-            return std::make_unique<MetricInput>(config.get<std::string>());
+            return std::make_unique<MetricInputNode>(config.get<std::string>());
         }
         else if (config.is_object())
         {
             // TODO: Check that not both of left and right are ConstantInput.
             // Otherwise the update algorithm will constantly try to update the
             // CombinedMetric, since both of its inputs have values ready.
-            std::unique_ptr<NodeInput> left = parse_input(config.at("left"));
-            std::unique_ptr<NodeInput> right = parse_input(config.at("right"));
+            std::unique_ptr<InputNode> left = parse_input(config.at("left"));
+            std::unique_ptr<InputNode> right = parse_input(config.at("right"));
 
             return parse_calc_node(config.at("operation"), std::move(left), std::move(right));
         }
@@ -90,9 +90,9 @@ void CombinedMetric::update()
     input_->update();
 }
 
-NodeInput::MetricInputsByName CombinedMetric::collect_metric_inputs()
+MetricInputNodesByName CombinedMetric::collect_metric_inputs()
 {
-    NodeInput::MetricInputsByName inputs;
+    MetricInputNodesByName inputs;
     input_->collect_metric_inputs(inputs);
     return inputs;
 }

@@ -1,4 +1,3 @@
-#include <cassert>
 #include <iostream>
 
 #include <metricq/json.hpp>
@@ -21,14 +20,14 @@ static void check(bool passed)
 }
 
 template <std::size_t N>
-static void check_and_fill_input(NodeInput::MetricInputsByName& input_map, const char* name,
+static void check_and_fill_input(MetricInputNodesByName& input_map, const char* name,
                                  const metricq::TimeValue (&tvs)[N])
 {
     auto inputs_it = input_map.find(name);
     std::cerr << "Checking for input " << name << "...\n";
     check(inputs_it != input_map.end());
 
-    std::vector<MetricInput*>& inputs_for_name = inputs_it->second;
+    std::vector<MetricInputNode*>& inputs_for_name = inputs_it->second;
     std::cerr << "Checking that input occurs only once...\n";
     check(inputs_for_name.size() == 1);
 
@@ -67,7 +66,7 @@ int main()
 
     CombinedMetric combined(config);
 
-    NodeInput::MetricInputsByName inputs = combined.collect_metric_inputs();
+    MetricInputNodesByName inputs = combined.collect_metric_inputs();
 
     check_and_fill_input(inputs, "foo", FOO_INPUT);
     check_and_fill_input(inputs, "bar", BAR_INPUT);

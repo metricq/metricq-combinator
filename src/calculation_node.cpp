@@ -65,12 +65,12 @@ void CalculationNode::update()
                                 left_->queue_length(), right_->queue_length(), queue_length());
 }
 
-void MetricInput::collect_metric_inputs(MetricInputsByName& inputs)
+void MetricInputNode::collect_metric_inputs(MetricInputNodesByName& inputs)
 {
     inputs[name_].emplace_back(this);
 }
 
-void CalculationNode::collect_metric_inputs(MetricInputsByName& inputs)
+void CalculationNode::collect_metric_inputs(MetricInputNodesByName& inputs)
 {
     left_->collect_metric_inputs(inputs);
     right_->collect_metric_inputs(inputs);

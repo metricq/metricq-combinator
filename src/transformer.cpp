@@ -105,20 +105,20 @@ void Transformer::on_data(const std::string& input_metric, const metricq::DataCh
 
         Log::trace() << "└── Yes, it does.";
         auto& input_list = inputs->second;
-        for (MetricInput* node_input : input_list)
+        for (MetricInputNode* input_node : input_list)
         {
             for (metricq::TimeValue tv : data)
             {
-                node_input->put(tv);
+                input_node->put(tv);
             }
             Log::trace() << fmt::format("└── Put data into queue ({:p}), now has length {}",
-                                        (void*)node_input, node_input->queue_length());
+                                        (void*)input_node, input_node->queue_length());
         }
 
         combined_metric.update();
 
         auto& metricq_metric = get_combined_metric(combined_name);
-        NodeInput& input = combined_metric.input();
+        InputNode& input = combined_metric.input();
         while (input.has_input())
         {
             metricq_metric.send(input.peek());

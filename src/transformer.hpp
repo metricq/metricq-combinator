@@ -68,7 +68,7 @@ private:
         }
 
         CombinedMetric metric;
-        NodeInput::MetricInputsByName inputs;
+        MetricInputNodesByName inputs;
     };
 
     using CombinedMetricByName = std::unordered_map<MetricName, CombinedMetricContainer>;

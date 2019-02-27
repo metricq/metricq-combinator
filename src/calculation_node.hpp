@@ -27,9 +27,10 @@
 #include <memory>
 #include <vector>
 
-class MetricInput;
+class MetricInputNode;
+using MetricInputNodesByName = std::unordered_map<std::string, std::vector<MetricInputNode*>>;
 
-struct NodeInput
+struct InputNode
 {
     virtual bool has_input() const = 0;
     virtual metricq::TimeValue peek() const = 0;
@@ -39,22 +40,20 @@ struct NodeInput
     {
     }
 
-    using MetricInputsByName = std::unordered_map<std::string, std::vector<MetricInput*>>;
-
-    virtual void collect_metric_inputs(MetricInputsByName&)
+    virtual void collect_metric_inputs(MetricInputNodesByName&)
     {
     }
 
     virtual std::size_t queue_length() const = 0;
 };
 
-struct NodeOutput
+struct OutputNode
 {
     virtual void put(metricq::TimeValue value) = 0;
     virtual std::size_t queue_length() const = 0;
 };
 
-class NodeInOutQueue : public NodeInput, public NodeOutput
+class InputQueue : public InputNode, public OutputNode
 {
 public:
     void put(metricq::TimeValue tv) override
@@ -86,7 +85,7 @@ private:
     std::deque<metricq::TimeValue> queue_;
 };
 
-class ConstantInput : public NodeInput
+class ConstantInput : public InputNode
 {
 public:
     constexpr ConstantInput(metricq::Value value) : time_value_(Timestamp::armageddon(), value)
@@ -121,14 +120,14 @@ private:
     metricq::TimeValue time_value_;
 };
 
-class MetricInput : public NodeInOutQueue
+class MetricInputNode : public InputQueue
 {
 public:
-    MetricInput(const std::string& name) : name_(name)
+    MetricInputNode(const std::string& name) : name_(name)
     {
     }
 
-    void collect_metric_inputs(MetricInputsByName&) override;
+    void collect_metric_inputs(MetricInputNodesByName&) override;
 
     const std::string& name() const
     {
@@ -139,16 +138,16 @@ private:
     std::string name_;
 };
 
-class SinglyBufferedInput : public NodeInOutQueue
+class SinglyBufferedInputQueue : public InputQueue
 {
 public:
-    SinglyBufferedInput() : buffered_value_(Timestamp::genesis(), 0)
+    SinglyBufferedInputQueue() : buffered_value_(Timestamp::genesis(), 0)
     {
     }
 
     bool has_input() const override
     {
-        return NodeInOutQueue::has_input();
+        return InputQueue::has_input();
     }
 
     metricq::TimeValue peek() const override
@@ -158,23 +157,23 @@ public:
 
     void discard() override
     {
-        buffered_value_ = NodeInOutQueue::peek();
-        NodeInOutQueue::discard();
+        buffered_value_ = InputQueue::peek();
+        InputQueue::discard();
     }
 
     std::size_t queue_length() const override
     {
-        return 1 + NodeInOutQueue::queue_length();
+        return 1 + InputQueue::queue_length();
     }
 
 private:
     metricq::TimeValue buffered_value_;
 };
 
-struct CalculationNode : NodeInOutQueue
+struct CalculationNode : InputQueue
 {
 public:
-    CalculationNode(std::unique_ptr<NodeInput> left, std::unique_ptr<NodeInput> right)
+    CalculationNode(std::unique_ptr<InputNode> left, std::unique_ptr<InputNode> right)
     : left_(std::move(left)), right_(std::move(right))
     {
     }
@@ -182,11 +181,11 @@ public:
     void update() override;
     virtual metricq::Value combine(metricq::Value a, metricq::Value b) = 0;
 
-    void collect_metric_inputs(MetricInputsByName&) override;
+    void collect_metric_inputs(MetricInputNodesByName&) override;
 
 private:
-    std::unique_ptr<NodeInput> left_;
-    std::unique_ptr<NodeInput> right_;
+    std::unique_ptr<InputNode> left_;
+    std::unique_ptr<InputNode> right_;
 };
 
 class AddNode : public CalculationNode
