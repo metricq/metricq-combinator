@@ -32,6 +32,8 @@ using MetricInputNodesByName = std::unordered_map<std::string, std::vector<Metri
 
 struct InputNode
 {
+    virtual ~InputNode() = default;
+
     virtual bool has_input() const = 0;
     virtual metricq::TimeValue peek() const = 0;
     virtual void discard() = 0;
@@ -49,6 +51,8 @@ struct InputNode
 
 struct OutputNode
 {
+    virtual ~OutputNode() = default;
+
     virtual void put(metricq::TimeValue value) = 0;
     virtual std::size_t queue_length() const = 0;
 };
