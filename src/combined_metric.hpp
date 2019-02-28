@@ -27,9 +27,7 @@
 
 #include <fmt/format.h>
 
-#include <iosfwd>
 #include <string>
-#include <variant>
 #include <vector>
 
 class CombinedMetric
@@ -58,8 +56,6 @@ public:
         return *input_;
     }
 
-    friend std::ostream& operator<<(std::ostream&, const CombinedMetric&);
-
     MetricInputNodesByName collect_metric_inputs();
 
 private:
@@ -71,5 +67,3 @@ private:
 private:
     std::unique_ptr<InputNode> input_;
 };
-
-std::ostream& operator<<(std::ostream&, const CombinedMetric&);

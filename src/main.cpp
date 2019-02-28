@@ -102,7 +102,6 @@ int main(int argc, const char* argv[])
     }
     catch (const CombinedMetric::ParseError& e)
     {
-        // Log::error() << "Error parsing " << config_filename << ": " << e.what();
         Log::error() << "Error parsing options: " << e.what();
     }
 }

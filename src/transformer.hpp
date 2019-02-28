@@ -25,9 +25,6 @@
 #include <asio/signal_set.hpp>
 #include <metricq/transformer.hpp>
 
-#include <deque>
-#include <vector>
-
 class Transformer : public metricq::Transformer
 {
 private:

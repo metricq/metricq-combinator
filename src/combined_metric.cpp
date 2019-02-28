@@ -21,9 +21,6 @@
 
 #include <metricq/json.hpp>
 
-#include <cassert>
-#include <ostream>
-
 std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::string& opstr,
                                                                  std::unique_ptr<InputNode> left,
                                                                  std::unique_ptr<InputNode> right)
