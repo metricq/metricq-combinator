@@ -2,7 +2,6 @@
 import sys
 import json
 import argparse
-import logging
 
 from pyparsing import Literal, Word, \
     ZeroOrMore, alphas, alphanums, nums, \
