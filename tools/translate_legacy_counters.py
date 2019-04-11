@@ -19,7 +19,7 @@ class Operand(object):
 
 class Counter(Operand):
     def __init__(self, path):
-        self.path = [part.replace('-', '_') for part in path]
+        self.path = list(path)
 
     def __repr__(self):
         return 'Counter("{}")'.format(self.path)
