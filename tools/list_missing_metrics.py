@@ -51,7 +51,7 @@ logger.handlers[0].formatter = logging.Formatter(
 click_completion.init()
 
 
-async def aget_missing_metrics(server, token, metrics):
+async def aget_missing_metrics(server, token, metrics, timeout=None):
     """Retrieve the subset of metrics that are not found on a given MetricQ
     server
 
@@ -70,7 +70,7 @@ async def aget_missing_metrics(server, token, metrics):
 
     async def get_matches(metric):
         selector = re.escape(metric)
-        match = await client.history_metric_list(selector)
+        match = await client.history_metric_list(selector, timeout=timeout)
         logger.debug(f'Matching metrics for selector "{selector}": {match}')
         return match
 
@@ -127,15 +127,18 @@ PRINTERS = {
 
 
 @click.command()
-@click.option('--server', default='amqp://localhost/')
-@click.option('--token', default='metric-availability-checker')
+@click.option('--server', default='amqp://localhost/', metavar="URL")
+@click.option('--token',
+              default='metric-availability-checker',
+              metavar="STRING")
+@click.option('-T', '--timeout', default=None, metavar="SECONDS", type=int)
 @click.option('-p',
               '--printer',
               default='pretty',
               type=click.Choice(PRINTERS.keys()))
 @click.argument('config_file', type=click.File('rb'), default=sys.stdin)
 @click_log.simple_verbosity_option(logger)
-def check_availability(server, token, printer, config_file):
+def check_availability(server, token, timeout, printer, config_file):
     """List metrics from a combinator configuration file that are neither \
 declared by itself, nor a MetricQ server.
 
@@ -166,7 +169,8 @@ declared by itself, nor a MetricQ server.
     # that are both missing from a server and are not combined by ourselves.
     inputs = filter(lambda m: m not in metrics, inputs)
 
-    missing = asyncio.run(aget_missing_metrics(server, token, inputs))
+    missing = asyncio.run(
+        aget_missing_metrics(server, token, inputs, timeout=timeout))
 
     PRINTERS[printer](missing)
 
