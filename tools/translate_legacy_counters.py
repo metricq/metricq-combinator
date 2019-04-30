@@ -33,10 +33,10 @@ class Counter(Operand):
 
 class Constant(Operand):
     def __init__(self, value):
-        self.value = float(value[0])
+        self.value = float(value)
 
     def __str__(self):
-        return str(self.value)
+        return f'{self.value:.12g}'
 
     def __repr__(self):
         return "Constant({0.value})".format(self)
@@ -46,15 +46,16 @@ class Constant(Operand):
 
 
 class Combined(Operand):
-    def __init__(self, toks):
-        self.left, self.op, self.right = toks[0]
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = op
+        self.right = right
 
     def __repr__(self):
-        return "Combined(left: {0.left}, op: {0.op}, right: {0.right})".format(
-            self)
+        return f"Combined(left: {self.left}, op: {self.op}, right: {self.right})"
 
     def __str__(self):
-        return "({0.left} {0.op} {0.right})".format(self)
+        return f"({self.left} {self.op} {self.right})"
 
     def json(self):
         return {
@@ -88,7 +89,7 @@ def balance_combined_expression(combined: Combined):
             middle = nmetrics // 2
             left = make_balanced(metrics[:middle], op)
             right = make_balanced(metrics[middle:], op)
-            return Combined([[left, op, right]])
+            return Combined(left, op, right)
 
     if not isinstance(combined, Combined):
         return combined
@@ -132,8 +133,8 @@ def legacy_counter_grammar():
             alphanums + '_-',
         )
 
-        COUNTER_GRAMMAR = (
-            ZeroOrMore(part + sep) + part).setParseAction(Counter)
+        COUNTER_GRAMMAR = (ZeroOrMore(part + sep) +
+                           part).setParseAction(Counter)
     return COUNTER_GRAMMAR
 
 
@@ -155,10 +156,11 @@ def legacy_derived_grammar():
     if not GRAMMAR:
         lbr, rbr = map(Suppress, "{}")
         counter = lbr + legacy_counter_grammar() + rbr
-        const = Word(nums).setParseAction(Constant)
+        const = Word(nums).setParseAction(lambda tok: Constant(tok[0]))
 
         expr = infixNotation(counter | const, [
-            (oneOf(['+', '-', '*', '/']), 2, opAssoc.RIGHT, Combined),
+            (oneOf(['+', '-', '*', '/']), 2, opAssoc.RIGHT,
+             lambda tok: Combined(tok[0][0], tok[0][1], tok[0][2])),
         ])
 
         # expr.setDebug().runTests('''
@@ -210,11 +212,10 @@ if __name__ == "__main__":
         help="Path to a config file (JSON) describing legacy counters",
         type=argparse.FileType(),
         default=sys.stdin)
-    parser.add_argument(
-        '-b',
-        '--balance',
-        help='balance complex expression trees',
-        action='store_true')
+    parser.add_argument('-b',
+                        '--balance',
+                        help='balance complex expression trees',
+                        action='store_true')
 
     args = parser.parse_args()
 
