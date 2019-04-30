@@ -186,18 +186,43 @@ def test_balance():
     balance_combined_expression(c)
 
 
+def translate_metadata(config):
+    metadata = dict()
+    for key in ('description', 'unit'):
+        if key in config:
+            metadata[key] = config[key]
+
+    if 'altunit' in config and 'multiplier' in config:
+        metadata['altunit'] = {
+            'name': config['altunit'],
+            'multiplier': config['multiplier']
+        }
+
+    return metadata
+
+
 def translate(configs, balance=False):
     new_metrics = dict()
     for counter, config in configs['counters'].items():
         derived = config.get('derived')
         if derived is None:
             continue
+
         dbg("Translating counter '{}'...".format(counter))
-        new_name = parse_with(legacy_counter_grammar(), counter)
-        new_config = parse_with(legacy_derived_grammar(), derived)
+        name = str(parse_with(legacy_counter_grammar(), counter))
+        expression = parse_with(legacy_derived_grammar(), derived)
+
         if balance:
-            new_config = balance_combined_expression(new_config)
-        new_metrics[str(new_name)] = new_config
+            expression = balance_combined_expression(expression)
+
+        metadata = translate_metadata(config)
+        metadata['display_expression'] = str(expression)
+
+        new_metrics[name] = {
+            'expression': expression.json(),
+            'metadata': metadata,
+        }
+
     return {'metrics': new_metrics}
 
 

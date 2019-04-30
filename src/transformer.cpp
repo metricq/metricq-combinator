@@ -55,7 +55,7 @@ void Transformer::on_transformer_config(const metricq::json& config)
         auto combined_name = it.key();
 
         auto [container_it, success] = combined_metrics_.emplace(
-            combined_name, CombinedMetricContainer::from_config(combined_config));
+            combined_name, CombinedMetricContainer::from_config(combined_config.at("expression")));
 
         if (!success)
         {
@@ -66,7 +66,6 @@ void Transformer::on_transformer_config(const metricq::json& config)
 
         auto& combined_metric = container_it->second.metric;
 
-        // Log::info() << "Deriving new metric: " << combined_name << " := " << combined_metric;
         Log::info() << "Deriving new metric: " << combined_name;
 
         // Register input metrics with sink
@@ -77,6 +76,25 @@ void Transformer::on_transformer_config(const metricq::json& config)
 
         // Register the combined metric as a new source
         this->register_combined_metric(combined_name);
+
+        // Optionally declare metadata for this combined metric, which are
+        // sourced from combined_config["metadata"], if the key exists
+        if (auto metadata_it = combined_config.find("metadata");
+            metadata_it != combined_config.end())
+        {
+            auto& metadata = *metadata_it;
+            if (metadata.is_object())
+            {
+                Log::debug() << "Declaring metadata for metric " << combined_name << ": "
+                             << metadata.dump();
+                (*this)[combined_name].metadata.json(metadata);
+            }
+            else
+            {
+                Log::warn() << "Metadata for combined metric " << combined_name
+                            << " are not an object, ignoring.";
+            }
+        }
     }
 }
 
