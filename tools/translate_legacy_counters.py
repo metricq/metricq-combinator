@@ -1,15 +1,25 @@
 #!/usr/bin/env python
 import sys
 import json
-import argparse
+import logging
+
+import click
+import click_completion
+import click_log
+
+click_completion.init()
+
+logger = logging.getLogger(__name__)
+
+click_log.basic_config(logger)
+logger.setLevel('WARNING')
+logger.handlers[0].formatter = logging.Formatter(
+    fmt='%(asctime)s [%(levelname)-8s] [%(name)-20s] %(message)s')
+
 
 from pyparsing import Literal, Word, \
     ZeroOrMore, alphas, alphanums, nums, \
     Suppress, infixNotation, opAssoc, oneOf
-
-
-def dbg(msg):
-    print(":: ", msg, file=sys.stderr)
 
 
 class Operand(object):
@@ -97,13 +107,13 @@ def balance_combined_expression(combined: Combined):
     if combined.op not in "+*":
         return combined
 
-    dbg("combined: {}".format(combined))
+    logger.debug("combined: {}".format(combined))
     exprs = gather_same_ops(combined)
-    dbg("gathered: {}".format(exprs))
+    logger.debug("gathered: {}".format(exprs))
     exprs = list(map(balance_combined_expression, exprs))
-    dbg("recursive: {}".format(exprs))
+    logger.debug("recursive: {}".format(exprs))
     balanced = make_balanced(exprs, combined.op)
-    dbg("balanced: {}".format(balanced))
+    logger.debug("balanced: {}".format(balanced))
     return balanced
 
 
@@ -201,14 +211,29 @@ def translate_metadata(config):
     return metadata
 
 
-def translate(configs, balance=False):
+@click.command()
+@click.argument('legacy_config', type=click.File('rb'), default=sys.stdin)
+@click.option('-b',
+              '--balance',
+              is_flag=True,
+              default=False,
+              help='balance complex expression trees')
+@click_log.simple_verbosity_option(logger)
+def translate(legacy_config, balance):
+    """Generate configurations for combined metrics from the legacy "Dataheap"-format
+
+    LEGACY_CONFIG:  a JSON file describing legacy counters
+    """
+
+    legacy_config = json.load(legacy_config)
+
     new_metrics = dict()
-    for counter, config in configs['counters'].items():
+    for counter, config in legacy_config['counters'].items():
         derived = config.get('derived')
         if derived is None:
             continue
 
-        dbg("Translating counter '{}'...".format(counter))
+        logger.debug("Translating counter '{}'...".format(counter))
         name = str(parse_with(legacy_counter_grammar(), counter))
         expression = parse_with(legacy_derived_grammar(), derived)
 
@@ -223,27 +248,9 @@ def translate(configs, balance=False):
             'metadata': metadata,
         }
 
-    return {'metrics': new_metrics}
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=
-        'Generate configurations for combined metrics from the legacy "Dataheap"-format'
-    )
-    parser.add_argument(
-        'infile',
-        metavar="LEGACY_CONFIG",
-        help="Path to a config file (JSON) describing legacy counters",
-        type=argparse.FileType(),
-        default=sys.stdin)
-    parser.add_argument('-b',
-                        '--balance',
-                        help='balance complex expression trees',
-                        action='store_true')
-
-    args = parser.parse_args()
-
-    new_config = translate(json.load(args.infile), args.balance)
-    for chunk in OperandEncoder().iterencode(new_config):
+    for chunk in OperandEncoder().iterencode({'metrics': new_metrics}):
         sys.stdout.write(chunk)
+
+
+if __name__ == '__main__':
+    translate()
