@@ -47,7 +47,7 @@ Transformer::~Transformer()
 
 void Transformer::on_transformer_config(const metricq::json& config)
 {
-    Log::debug() << "config: " << config;
+    Log::trace() << "config: " << config;
     auto& combined_metrics = config.at("metrics");
     for (auto it = combined_metrics.begin(); it != combined_metrics.end(); ++it)
     {
