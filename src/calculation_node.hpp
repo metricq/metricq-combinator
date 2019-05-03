@@ -235,3 +235,25 @@ class DivideNode : public CalculationNode
 public:
     using CalculationNode::CalculationNode;
 };
+
+class MinNode : public CalculationNode
+{
+    metricq::Value combine(metricq::Value a, metricq::Value b) override
+    {
+        return std::min(a, b);
+    }
+
+public:
+    using CalculationNode::CalculationNode;
+};
+
+class MaxNode : public CalculationNode
+{
+    metricq::Value combine(metricq::Value a, metricq::Value b) override
+    {
+        return std::max(a, b);
+    }
+
+public:
+    using CalculationNode::CalculationNode;
+};

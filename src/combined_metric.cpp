@@ -40,6 +40,10 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::stri
         return std::make_unique<MultipyNode>(std::move(left), std::move(right));
     case '/':
         return std::make_unique<DivideNode>(std::move(left), std::move(right));
+    case 'min':
+        return std::make_unique<MinNode>(std::move(left), std::move(right));
+    case 'max':
+        return std::make_unique<MaxNode>(std::move(left), std::move(right));
     default:
         throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
     }
