@@ -30,23 +30,31 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::stri
         throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
     }
 
-    switch (opstr[0])
+    if (opstr == "+")
     {
-    case '+':
         return std::make_unique<AddNode>(std::move(left), std::move(right));
-    case '-':
-        return std::make_unique<SubtractNode>(std::move(left), std::move(right));
-    case '*':
-        return std::make_unique<MultipyNode>(std::move(left), std::move(right));
-    case '/':
-        return std::make_unique<DivideNode>(std::move(left), std::move(right));
-    case 'min':
-        return std::make_unique<MinNode>(std::move(left), std::move(right));
-    case 'max':
-        return std::make_unique<MaxNode>(std::move(left), std::move(right));
-    default:
-        throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
     }
+    if (opstr == "-")
+    {
+        return std::make_unique<SubtractNode>(std::move(left), std::move(right));
+    }
+    if (opstr == "*")
+    {
+        return std::make_unique<MultipyNode>(std::move(left), std::move(right));
+    }
+    if (opstr == "/")
+    {
+        return std::make_unique<DivideNode>(std::move(left), std::move(right));
+    }
+    if (opstr == "min")
+    {
+        return std::make_unique<MinNode>(std::move(left), std::move(right));
+    }
+    if (opstr == "max")
+    {
+        return std::make_unique<MaxNode>(std::move(left), std::move(right));
+    }
+    throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
 }
 
 std::unique_ptr<InputNode> CombinedMetric::parse_input(const metricq::json& config)
