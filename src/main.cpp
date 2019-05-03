@@ -22,7 +22,13 @@
 
 #include <nitro/broken_options/parser.hpp>
 
+#include <cstdlib>
+
 using Log = combinator_log::Log;
+
+// that's in <cstdlib>
+// constexpr int EXIT_FAILURE = 1;
+constexpr int EXIT_RESTART = 2;
 
 nitro::broken_options::options parse_options(int argc, const char* argv[])
 {
@@ -75,13 +81,13 @@ nitro::broken_options::options parse_options(int argc, const char* argv[])
     {
         Log::warn() << "Error parsing options: " << e.what();
         parser.usage();
-        std::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE); // 1
     }
     catch (std::exception& e)
     {
         Log::error() << "Unhandled exception: " << e.what();
         parser.usage();
-        std::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE); // 1
     }
 }
 
@@ -103,5 +109,11 @@ int main(int argc, const char* argv[])
     catch (const CombinedMetric::ParseError& e)
     {
         Log::error() << "Error parsing options: " << e.what();
+        return EXIT_FAILURE;
+    }
+    catch (const std::exception& e)
+    {
+        Log::error() << "Unhandled exception: " << e.what();
+        return EXIT_RESTART;
     }
 }
