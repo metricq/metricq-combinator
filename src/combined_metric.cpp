@@ -18,6 +18,9 @@
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "combined_metric.hpp"
+#include "binary_node.hpp"
+#include "input_node.hpp"
+#include "variadic_node.hpp"
 
 #include <metricq/json.hpp>
 
@@ -106,6 +109,7 @@ std::vector<std::unique_ptr<InputNode>> CombinedMetric::parse_inputs(const metri
     {
         result.emplace_back(parse_input(config));
     }
+    return result;
 }
 
 CombinedMetric::CombinedMetric(const metricq::json& config) : input_(parse_input(config))

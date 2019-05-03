@@ -20,48 +20,22 @@
 #pragma once
 
 #include "input_node.hpp"
-#include "log.hpp"
 
-#include <metricq/json.hpp>
 #include <metricq/types.hpp>
 
-#include <fmt/format.h>
+#include <memory>
 
-#include <string>
-#include <vector>
-
-class CombinedMetric
+struct UnaryNode : CalculationNode
 {
 public:
-    class ParseError : public std::runtime_error
+    UnaryNode(std::unique_ptr<InputNode> input) : input_(std::move(input))
     {
-    public:
-        using std::runtime_error::runtime_error;
-
-        template <typename Fmt, typename... Args>
-        ParseError(Fmt&& format, Args&&... args)
-        : std::runtime_error{ fmt::format(std::forward<Fmt>(format), std::forward<Args>(args)...) }
-        {
-        }
-    };
-
-public:
-    CombinedMetric(const metricq::json&);
-    CombinedMetric(CombinedMetric&&) = default;
-
-    void update();
-
-    InputNode& input()
-    {
-        return *input_;
     }
 
-    MetricInputNodesByName collect_metric_inputs();
+    void update() override;
+    virtual metricq::TimeValue process(metricq::TimeValue a) = 0;
 
-private:
-    static std::unique_ptr<InputNode> parse_input(const metricq::json&);
-    static std::vector<std::unique_ptr<InputNode>> parse_inputs(const metricq::json&);
-    static std::unique_ptr<CalculationNode> parse_calc_node(const metricq::json&);
+    void collect_metric_inputs(MetricInputNodesByName&) override;
 
 private:
     std::unique_ptr<InputNode> input_;

@@ -19,8 +19,8 @@
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include "calculation_node.hpp"
 #include "combined_metric.hpp"
+#include "input_node.hpp"
 
 #include <asio/signal_set.hpp>
 #include <metricq/transformer.hpp>

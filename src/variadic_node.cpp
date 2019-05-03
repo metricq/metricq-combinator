@@ -17,66 +17,15 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
-#include "calculation_node.hpp"
-
-#include "log.hpp"
-
-#include <metricq/types.hpp>
 
 #include <fmt/format.h>
 
+#include "log.hpp"
+#include "variadic_node.hpp"
+
 using Log = combinator_log::Log;
 
-void MetricInputNode::collect_metric_inputs(MetricInputNodesByName& inputs)
-{
-    inputs[name_].emplace_back(this);
-}
-
-void BinaryCalculationNode::update()
-{
-    left_->update();
-    right_->update();
-
-    while (left_->has_input() && right_->has_input())
-    {
-        auto l = left_->peek();
-        auto r = right_->peek();
-
-        metricq::TimePoint new_time;
-        {
-            if (l.time < r.time)
-            {
-                new_time = l.time;
-                left_->discard();
-            }
-            else if (l.time > r.time)
-            {
-                new_time = r.time;
-                right_->discard();
-            }
-            else // (l.time == r.time)
-            {
-                new_time = l.time;
-                left_->discard();
-                right_->discard();
-            }
-        }
-
-        auto new_value = combine(l.value, r.value);
-
-        put(metricq::TimeValue{ new_time, new_value });
-    }
-    Log::trace() << fmt::format("Remaining queued values: {{ left: {}, right: {}, output: {} }}",
-                                left_->queue_length(), right_->queue_length(), queue_length());
-}
-
-void BinaryCalculationNode::collect_metric_inputs(MetricInputNodesByName& inputs)
-{
-    left_->collect_metric_inputs(inputs);
-    right_->collect_metric_inputs(inputs);
-}
-
-void VariadicCalculationNode::update()
+void VariadicNode::update()
 {
     for (auto& input : input_nodes_)
     {
@@ -123,7 +72,7 @@ void VariadicCalculationNode::update()
     }
 }
 
-void VariadicCalculationNode::collect_metric_inputs(MetricInputNodesByName& inputs)
+void VariadicNode::collect_metric_inputs(MetricInputNodesByName& inputs)
 {
     for (auto& input_node : input_nodes_)
     {
