@@ -21,35 +21,46 @@
 
 #include <metricq/json.hpp>
 
-std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::string& opstr,
-                                                                 std::unique_ptr<InputNode> left,
-                                                                 std::unique_ptr<InputNode> right)
+std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const metricq::json& config)
 {
-    if (opstr == "+")
+    // TODO: Check that not all inputs are ConstantInput.
+    // Otherwise the update algorithm will constantly try to update the
+    // CombinedMetric, since both of its inputs have values ready.
+
+    std::string op = config.at("operation");
+    if (op == "+")
     {
-        return std::make_unique<AddNode>(std::move(left), std::move(right));
+        return std::make_unique<AddNode>(parse_input(config.at("left")),
+                                         parse_input(config.at("right")));
     }
-    if (opstr == "-")
+    if (op == "-")
     {
-        return std::make_unique<SubtractNode>(std::move(left), std::move(right));
+        return std::make_unique<SubtractNode>(parse_input(config.at("left")),
+                                              parse_input(config.at("right")));
     }
-    if (opstr == "*")
+    if (op == "*")
     {
-        return std::make_unique<MultipyNode>(std::move(left), std::move(right));
+        return std::make_unique<MultipyNode>(parse_input(config.at("left")),
+                                             parse_input(config.at("right")));
     }
-    if (opstr == "/")
+    if (op == "/")
     {
-        return std::make_unique<DivideNode>(std::move(left), std::move(right));
+        return std::make_unique<DivideNode>(parse_input(config.at("left")),
+                                            parse_input(config.at("right")));
     }
-    if (opstr == "min")
+    if (op == "min")
     {
-        return std::make_unique<MinNode>(std::move(left), std::move(right));
+        return std::make_unique<MinNode>(parse_inputs(config.at("inputs")));
     }
-    if (opstr == "max")
+    if (op == "max")
     {
-        return std::make_unique<MaxNode>(std::move(left), std::move(right));
+        return std::make_unique<MaxNode>(parse_inputs(config.at("inputs")));
     }
-    throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
+    if (op == "sum")
+    {
+        return std::make_unique<SumNode>(parse_inputs(config.at("inputs")));
+    }
+    throw CombinedMetric::ParseError("unknown operation \"{}\"", op);
 }
 
 std::unique_ptr<InputNode> CombinedMetric::parse_input(const metricq::json& config)
@@ -66,13 +77,7 @@ std::unique_ptr<InputNode> CombinedMetric::parse_input(const metricq::json& conf
         }
         else if (config.is_object())
         {
-            // TODO: Check that not both of left and right are ConstantInput.
-            // Otherwise the update algorithm will constantly try to update the
-            // CombinedMetric, since both of its inputs have values ready.
-            std::unique_ptr<InputNode> left = parse_input(config.at("left"));
-            std::unique_ptr<InputNode> right = parse_input(config.at("right"));
-
-            return parse_calc_node(config.at("operation"), std::move(left), std::move(right));
+            return parse_calc_node(config);
         }
         else
         {
@@ -82,6 +87,24 @@ std::unique_ptr<InputNode> CombinedMetric::parse_input(const metricq::json& conf
     catch (const metricq::json::exception& e)
     {
         throw ParseError("failed to parse configuration: {}", e.what());
+    }
+}
+
+std::vector<std::unique_ptr<InputNode>> CombinedMetric::parse_inputs(const metricq::json& configs)
+{
+    if (!configs.is_array())
+    {
+        throw ParseError("inputs are not an array: ", configs.dump());
+    }
+    if (!configs.size() == 0)
+    {
+        throw ParseError("empty inputs array.");
+    }
+    std::vector<std::unique_ptr<InputNode>> result;
+    result.reserve(configs.size());
+    for (const auto& config : configs)
+    {
+        result.emplace_back(parse_input(config));
     }
 }
 

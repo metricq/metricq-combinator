@@ -176,8 +176,12 @@ private:
 
 struct CalculationNode : InputQueue
 {
+};
+
+struct BinaryCalculationNode : CalculationNode
+{
 public:
-    CalculationNode(std::unique_ptr<InputNode> left, std::unique_ptr<InputNode> right)
+    BinaryCalculationNode(std::unique_ptr<InputNode> left, std::unique_ptr<InputNode> right)
     : left_(std::move(left)), right_(std::move(right))
     {
     }
@@ -192,7 +196,7 @@ private:
     std::unique_ptr<InputNode> right_;
 };
 
-class AddNode : public CalculationNode
+class AddNode : public BinaryCalculationNode
 {
     metricq::Value combine(metricq::Value a, metricq::Value b) override
     {
@@ -200,10 +204,10 @@ class AddNode : public CalculationNode
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using BinaryCalculationNode::BinaryCalculationNode;
 };
 
-class SubtractNode : public CalculationNode
+class SubtractNode : public BinaryCalculationNode
 {
     metricq::Value combine(metricq::Value a, metricq::Value b) override
     {
@@ -211,10 +215,10 @@ class SubtractNode : public CalculationNode
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using BinaryCalculationNode::BinaryCalculationNode;
 };
 
-class MultipyNode : public CalculationNode
+class MultipyNode : public BinaryCalculationNode
 {
     metricq::Value combine(metricq::Value a, metricq::Value b) override
     {
@@ -222,10 +226,10 @@ class MultipyNode : public CalculationNode
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using BinaryCalculationNode::BinaryCalculationNode;
 };
 
-class DivideNode : public CalculationNode
+class DivideNode : public BinaryCalculationNode
 {
     metricq::Value combine(metricq::Value a, metricq::Value b) override
     {
@@ -233,27 +237,59 @@ class DivideNode : public CalculationNode
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using BinaryCalculationNode::BinaryCalculationNode;
 };
 
-class MinNode : public CalculationNode
+struct VariadicCalculationNode : CalculationNode
 {
-    metricq::Value combine(metricq::Value a, metricq::Value b) override
+public:
+    VariadicCalculationNode(std::vector<std::unique_ptr<InputNode>> inputs)
+    : input_nodes_(std::move(inputs))
     {
-        return std::min(a, b);
+    }
+
+    void update() override;
+    virtual metricq::Value combine(const std::vector<metricq::Value>& input_values) = 0;
+
+    void collect_metric_inputs(MetricInputNodesByName&) override;
+
+private:
+    std::vector<std::unique_ptr<InputNode>> input_nodes_;
+};
+
+class SumNode : public VariadicCalculationNode
+{
+    metricq::Value combine(const std::vector<metricq::Value>& input_values) override
+    {
+        return std::accumulate(input_values.begin(), input_values.end(), metricq::Value());
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using VariadicCalculationNode::VariadicCalculationNode;
 };
 
-class MaxNode : public CalculationNode
+class MinNode : public VariadicCalculationNode
 {
-    metricq::Value combine(metricq::Value a, metricq::Value b) override
+    metricq::Value combine(const std::vector<metricq::Value>& input_values) override
     {
-        return std::max(a, b);
+        auto it = std::min_element(input_values.begin(), input_values.end());
+        assert(it != input_values.end());
+        return *it;
     }
 
 public:
-    using CalculationNode::CalculationNode;
+    using VariadicCalculationNode::VariadicCalculationNode;
+};
+
+class MaxNode : public VariadicCalculationNode
+{
+    metricq::Value combine(const std::vector<metricq::Value>& input_values) override
+    {
+        auto it = std::max_element(input_values.begin(), input_values.end());
+        assert(it != input_values.end());
+        return *it;
+    }
+
+public:
+    using VariadicCalculationNode::VariadicCalculationNode;
 };

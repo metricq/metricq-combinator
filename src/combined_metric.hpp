@@ -60,9 +60,8 @@ public:
 
 private:
     static std::unique_ptr<InputNode> parse_input(const metricq::json&);
-    static std::unique_ptr<CalculationNode> parse_calc_node(const std::string& opstr,
-                                                            std::unique_ptr<InputNode> left,
-                                                            std::unique_ptr<InputNode> right);
+    static std::vector<std::unique_ptr<InputNode>> parse_inputs(const metricq::json&);
+    static std::unique_ptr<CalculationNode> parse_calc_node(const metricq::json&);
 
 private:
     std::unique_ptr<InputNode> input_;
