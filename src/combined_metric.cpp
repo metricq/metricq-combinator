@@ -25,11 +25,6 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const std::stri
                                                                  std::unique_ptr<InputNode> left,
                                                                  std::unique_ptr<InputNode> right)
 {
-    if (opstr.length() != 1)
-    {
-        throw CombinedMetric::ParseError("unknown operation \"{}\"", opstr);
-    }
-
     if (opstr == "+")
     {
         return std::make_unique<AddNode>(std::move(left), std::move(right));
