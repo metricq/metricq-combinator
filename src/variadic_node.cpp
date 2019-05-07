@@ -32,13 +32,14 @@ void VariadicNode::update()
         input->update();
     }
 
-    while (std::any_of(input_nodes_.begin(), input_nodes_.end(),
+    while (std::all_of(input_nodes_.begin(), input_nodes_.end(),
                        [](auto& input) { return input->has_input(); }))
     {
         std::vector<metricq::TimePoint> input_time_points;
         input_time_points.reserve(input_nodes_.size());
         std::vector<metricq::Value> input_values;
         input_values.reserve(input_nodes_.size());
+
         for (auto& input_node : input_nodes_)
         {
             auto tv = input_node->peek();
@@ -55,10 +56,10 @@ void VariadicNode::update()
         // ZIP :(
         for (size_t i = 0; i < input_nodes_.size(); ++i)
         {
-            auto& input = input_nodes_.at(i);
             auto& time = input_time_points.at(i);
             if (time == new_time)
             {
+                auto& input = input_nodes_.at(i);
                 input->discard();
             }
             else
@@ -68,6 +69,7 @@ void VariadicNode::update()
         }
 
         auto new_value = combine(input_values);
+
         put(metricq::TimeValue{ new_time, new_value });
     }
 }

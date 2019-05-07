@@ -36,30 +36,30 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const metricq::
         return std::make_unique<AddNode>(parse_input(config.at("left")),
                                          parse_input(config.at("right")));
     }
-    if (op == "-")
+    else if (op == "-")
     {
         return std::make_unique<SubtractNode>(parse_input(config.at("left")),
                                               parse_input(config.at("right")));
     }
-    if (op == "*")
+    else if (op == "*")
     {
         return std::make_unique<MultipyNode>(parse_input(config.at("left")),
                                              parse_input(config.at("right")));
     }
-    if (op == "/")
+    else if (op == "/")
     {
         return std::make_unique<DivideNode>(parse_input(config.at("left")),
                                             parse_input(config.at("right")));
     }
-    if (op == "min")
+    else if (op == "min")
     {
         return std::make_unique<MinNode>(parse_inputs(config.at("inputs")));
     }
-    if (op == "max")
+    else if (op == "max")
     {
         return std::make_unique<MaxNode>(parse_inputs(config.at("inputs")));
     }
-    if (op == "sum")
+    else if (op == "sum")
     {
         return std::make_unique<SumNode>(parse_inputs(config.at("inputs")));
     }
