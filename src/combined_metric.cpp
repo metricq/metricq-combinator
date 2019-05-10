@@ -99,7 +99,7 @@ std::vector<std::unique_ptr<InputNode>> CombinedMetric::parse_inputs(const metri
     {
         throw ParseError("inputs are not an array: ", configs.dump());
     }
-    if (!configs.size() == 0)
+    if (configs.size() == 0)
     {
         throw ParseError("empty inputs array.");
     }
