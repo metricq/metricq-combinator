@@ -20,6 +20,7 @@
 #include "combined_metric.hpp"
 #include "binary_node.hpp"
 #include "input_node.hpp"
+#include "throttle_node.hpp"
 #include "variadic_node.hpp"
 
 #include <metricq/json.hpp>
@@ -62,6 +63,12 @@ std::unique_ptr<CalculationNode> CombinedMetric::parse_calc_node(const metricq::
     else if (op == "sum")
     {
         return std::make_unique<SumNode>(parse_inputs(config.at("inputs")));
+    }
+    else if (op == "throttle")
+    {
+        auto cooldown_period =
+            metricq::duration_parse(config.at("cooldown_period").get<std::string>());
+        return std::make_unique<ThrottleNode>(parse_input(config.at("input")), cooldown_period);
     }
     throw CombinedMetric::ParseError("unknown operation \"{}\"", op);
 }

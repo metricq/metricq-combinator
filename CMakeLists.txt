@@ -13,6 +13,7 @@ set(SRCS
     src/log.cpp
     src/input_node.cpp
     src/unary_node.cpp
+    src/throttle_node.cpp
     src/binary_node.cpp
     src/variadic_node.cpp
     src/combined_metric.cpp
