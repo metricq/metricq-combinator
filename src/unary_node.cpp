@@ -31,3 +31,8 @@ void UnaryNode::update()
         put(process(tv));
     }
 }
+
+void UnaryNode::collect_metric_inputs(MetricInputNodesByName& inputs)
+{
+    return input_->collect_metric_inputs(inputs);
+}
