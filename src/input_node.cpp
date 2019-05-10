@@ -19,14 +19,6 @@
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "input_node.hpp"
 
-#include "log.hpp"
-
-#include <metricq/types.hpp>
-
-#include <fmt/format.h>
-
-using Log = combinator_log::Log;
-
 void MetricInputNode::collect_metric_inputs(MetricInputNodesByName& inputs)
 {
     inputs[name_].emplace_back(this);

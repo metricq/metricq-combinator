@@ -18,12 +18,7 @@
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <fmt/format.h>
-
-#include "log.hpp"
 #include "variadic_node.hpp"
-
-using Log = combinator_log::Log;
 
 void VariadicNode::update()
 {
