@@ -28,7 +28,7 @@ namespace Timestamp
 static constexpr metricq::TimePoint genesis()
 {
     using duration = metricq::TimePoint::duration;
-    return metricq::TimePoint(duration(std::numeric_limits<duration::rep>::lowest()));
+    return metricq::TimePoint(duration(0));
 }
 
 static constexpr metricq::TimePoint armageddon()
