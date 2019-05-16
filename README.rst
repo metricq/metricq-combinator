@@ -37,15 +37,27 @@ their configuration::
    }
 
 For each combined metric, the key ``"expression"`` is mandatory and describes
-this metric as a tree of binary operations and input metrics/constants::
+this metric as a tree of operations and input metrics/constants::
 
    <expression> ::= "<input metric>"
    <expression> ::= <constant value (float/integer)>
    <expression> ::= {
+                        "operation": ("+" | "-" | "*" | "/"),
                         "left": <expression>,
-                        "right": <expression>,
-                        "operation": ("+" | "-" | "*" | "/")
+                        "right": <expression>
                     }
+   <expression> ::= {
+                        "operation": ("min" | "max" | "sum"),
+                        "inputs": [<expression>, ...]
+                    }
+   <expression> ::= {
+                        "operation": "throttle",
+                        "cooldown_period": "<duration>",
+                        "input": <expression>
+                    }
+
+where ``<duration>`` is of the form ``<value><unit>``, e.g. ``2s`` or
+``500 milliseconds``.
 
 The key ``"metadata"`` is optional and maps to a JSON object containing
 arbitrary metadata for this combined metric.  These are sent to the manager when
