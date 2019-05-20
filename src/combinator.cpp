@@ -24,6 +24,8 @@
 
 #include <fmt/format.h>
 
+#include <numeric>
+
 using Log = metricq::logger::nitro::Log;
 
 Combinator::Combinator(const std::string& manager_host, const std::string& token)
@@ -99,8 +101,47 @@ void Combinator::on_transformer_config(const metricq::json& config)
     }
 }
 
+template <typename Iterator>
+auto gcd(Iterator begin, Iterator end)
+{
+    assert(begin != end);
+
+    auto result = *begin;
+
+    auto& it = ++begin;
+
+    for (; it != end; ++it)
+    {
+        result = std::gcd(result, *it);
+    }
+
+    return result;
+}
+
 void Combinator::on_transformer_ready()
 {
+    // at this point, the metadata of all input metrics is available in this->metadata_
+    // so we can calculate the rate of the combined metrics
+
+    for (auto& [combined_name, metric_container] : combined_metrics_)
+    {
+        auto& metric = get_combined_metric(combined_name);
+
+        // do not overwrite if rate was already set in the config
+        if (std::isnan(metric.metadata.rate()))
+        {
+            auto intervals = std::vector<std::int64_t>{};
+
+            for (auto& [input_metric, input_nodes] : metric_container.inputs)
+            {
+                // if rate was not set, this returns NaN, which will propragate through
+                intervals.emplace_back(1 / metadata_[input_metric].rate());
+            }
+
+            metric.metadata.rate(1. / gcd(intervals.begin(), intervals.end()));
+        }
+    }
+
     Log::info() << "Combinator ready.";
 }
 
