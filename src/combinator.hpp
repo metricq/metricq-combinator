@@ -39,11 +39,6 @@ private:
     void on_transformer_ready() override;
     void on_data(const std::string& metric_name, const metricq::DataChunk&) override;
 
-    void register_combined_metric(const std::string& combined_name)
-    {
-        (*this)[combined_name];
-    }
-
     metricq::Metric<metricq::Transformer>& get_combined_metric(const std::string& combined_name)
     {
         return (*this)[combined_name];

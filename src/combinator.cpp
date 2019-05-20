@@ -75,8 +75,8 @@ void Combinator::on_transformer_config(const metricq::json& config)
             input_metrics.emplace_back(input_name);
         }
 
-        // Register the combined metric as a new source
-        this->register_combined_metric(combined_name);
+        // Register the combined metric as a new source metric
+        auto& metric = (*this)[combined_name];
 
         // Optionally declare metadata for this combined metric, which are
         // sourced from combined_config["metadata"], if the key exists
@@ -88,7 +88,7 @@ void Combinator::on_transformer_config(const metricq::json& config)
             {
                 Log::debug() << "Declaring metadata for metric " << combined_name << ": "
                              << metadata.dump();
-                (*this)[combined_name].metadata.json(metadata);
+                metric.metadata.json(metadata);
             }
             else
             {
