@@ -20,7 +20,6 @@
 #pragma once
 
 #include "input_node.hpp"
-#include "log.hpp"
 
 #include <metricq/json.hpp>
 #include <metricq/types.hpp>

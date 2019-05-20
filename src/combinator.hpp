@@ -25,14 +25,14 @@
 #include <asio/signal_set.hpp>
 #include <metricq/transformer.hpp>
 
-class Transformer : public metricq::Transformer
+class Combinator : public metricq::Transformer
 {
 private:
     using MetricName = std::string;
 
 public:
-    Transformer(const std::string& manager_host, const std::string& token);
-    ~Transformer();
+    Combinator(const std::string& manager_host, const std::string& token);
+    ~Combinator();
 
 private:
     void on_transformer_config(const metricq::json& config) override;

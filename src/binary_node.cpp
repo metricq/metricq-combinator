@@ -18,12 +18,13 @@
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "binary_node.hpp"
+
+#include <metricq/logger/nitro.hpp>
+
 #include <fmt/format.h>
 
-#include "binary_node.hpp"
-#include "log.hpp"
-
-using Log = combinator_log::Log;
+using Log = metricq::logger::nitro::Log;
 
 void BinaryNode::update()
 {

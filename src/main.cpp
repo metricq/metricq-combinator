@@ -17,14 +17,15 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
-#include "log.hpp"
-#include "transformer.hpp"
+#include "combinator.hpp"
+
+#include <metricq/logger/nitro.hpp>
 
 #include <nitro/broken_options/parser.hpp>
 
 #include <cstdlib>
 
-using Log = combinator_log::Log;
+using Log = metricq::logger::nitro::Log;
 
 // that's in <cstdlib>
 // constexpr int EXIT_FAILURE = 1;
@@ -32,8 +33,7 @@ constexpr int EXIT_RESTART = 2;
 
 nitro::broken_options::options parse_options(int argc, const char* argv[])
 {
-    using combinator_log::set_severity;
-    set_severity(nitro::log::severity_level::debug);
+    metricq::logger::nitro::set_severity(nitro::log::severity_level::debug);
 
     nitro::broken_options::parser parser;
     parser.option("server", "The metricq management server to connect to.")
@@ -54,7 +54,7 @@ nitro::broken_options::options parse_options(int argc, const char* argv[])
     {
         auto options = parser.parse(argc, argv);
 
-        combinator_log::initialize();
+        metricq::logger::nitro::initialize();
 
         if (options.given("help"))
         {
@@ -64,15 +64,15 @@ nitro::broken_options::options parse_options(int argc, const char* argv[])
 
         if (options.given("trace"))
         {
-            combinator_log::set_severity(nitro::log::severity_level::trace);
+            metricq::logger::nitro::set_severity(nitro::log::severity_level::trace);
         }
         else if (options.given("verbose"))
         {
-            combinator_log::set_severity(nitro::log::severity_level::debug);
+            metricq::logger::nitro::set_severity(nitro::log::severity_level::debug);
         }
         else if (options.given("quiet"))
         {
-            combinator_log::set_severity(nitro::log::severity_level::warn);
+            metricq::logger::nitro::set_severity(nitro::log::severity_level::warn);
         }
 
         return options;
@@ -97,13 +97,13 @@ int main(int argc, const char* argv[])
 
     try
     {
-        Transformer transformer{
+        Combinator combinator{
             options.get("server"),
             options.get("token"),
         };
 
         Log::info() << "starting main loop...";
-        transformer.main_loop();
+        combinator.main_loop();
         Log::info() << "stopped.";
     }
     catch (const CombinedMetric::ParseError& e)

@@ -17,15 +17,16 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
-#include "transformer.hpp"
-#include "log.hpp"
+#include "combinator.hpp"
 
-#include <fmt/format.h>
+#include <metricq/logger/nitro.hpp>
 #include <metricq/source.hpp>
 
-using Log = combinator_log::Log;
+#include <fmt/format.h>
 
-Transformer::Transformer(const std::string& manager_host, const std::string& token)
+using Log = metricq::logger::nitro::Log;
+
+Combinator::Combinator(const std::string& manager_host, const std::string& token)
 : metricq::Transformer(token), signals_(io_service, SIGINT, SIGTERM)
 {
     signals_.async_wait([this](auto, auto signal) {
@@ -41,11 +42,11 @@ Transformer::Transformer(const std::string& manager_host, const std::string& tok
     connect(manager_host);
 }
 
-Transformer::~Transformer()
+Combinator::~Combinator()
 {
 }
 
-void Transformer::on_transformer_config(const metricq::json& config)
+void Combinator::on_transformer_config(const metricq::json& config)
 {
     Log::trace() << "config: " << config;
     auto& combined_metrics = config.at("metrics");
@@ -98,12 +99,12 @@ void Transformer::on_transformer_config(const metricq::json& config)
     }
 }
 
-void Transformer::on_transformer_ready()
+void Combinator::on_transformer_ready()
 {
-    Log::info() << "Transformer ready.";
+    Log::info() << "Combinator ready.";
 }
 
-void Transformer::on_data(const std::string& input_metric, const metricq::DataChunk& data)
+void Combinator::on_data(const std::string& input_metric, const metricq::DataChunk& data)
 {
     Log::trace() << fmt::format("Got data from input metric {}", input_metric);
 
