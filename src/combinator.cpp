@@ -101,23 +101,6 @@ void Combinator::on_transformer_config(const metricq::json& config)
     }
 }
 
-template <typename Iterator>
-auto gcd(Iterator begin, Iterator end)
-{
-    assert(begin != end);
-
-    auto result = *begin;
-
-    auto& it = ++begin;
-
-    for (; it != end; ++it)
-    {
-        result = std::gcd(result, *it);
-    }
-
-    return result;
-}
-
 void Combinator::on_transformer_ready()
 {
     // at this point, the metadata of all input metrics is available in this->metadata_
@@ -130,15 +113,18 @@ void Combinator::on_transformer_ready()
         // do not overwrite if rate was already set in the config
         if (std::isnan(metric.metadata.rate()))
         {
-            auto intervals = std::vector<std::int64_t>{};
+            auto rate = 0.;
 
             for (auto& [input_metric, input_nodes] : metric_container.inputs)
             {
                 // if rate was not set, this returns NaN, which will propragate through
-                intervals.emplace_back(1 / metadata_[input_metric].rate());
+                rate = std::max(rate, metadata_[input_metric].rate());
             }
 
-            metric.metadata.rate(1. / gcd(intervals.begin(), intervals.end()));
+            if (!std::isnan(rate))
+            {
+                metric.metadata.rate(rate);
+            }
         }
     }
 
