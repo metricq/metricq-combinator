@@ -122,6 +122,7 @@ void Combinator::on_transformer_ready()
 {
     // at this point, the metadata of all input metrics is available in this->metadata_
     // so we can calculate the rate of the combined metrics
+    bool missing_inputs = false;
 
     for (auto& [combined_name, metric_container] : combined_metrics_)
     {
@@ -135,7 +136,16 @@ void Combinator::on_transformer_ready()
             for (auto& [input_metric, input_nodes] : metric_container.inputs)
             {
                 // if rate was not set, this returns NaN, which will propragate through
-                rate = std::max(rate, metadata_[input_metric].rate());
+                try
+                {
+                    rate = std::max(rate, metadata_.at(input_metric).rate());
+                }
+                catch (const std::out_of_range&)
+                {
+                    Log::error() << "Missing input " << input_metric << " for combined "
+                                 << combined_name;
+                    missing_inputs = true;
+                }
             }
 
             if (!std::isnan(rate))
@@ -143,6 +153,12 @@ void Combinator::on_transformer_ready()
                 metric.metadata.rate(rate);
             }
         }
+    }
+
+    if (missing_inputs)
+    {
+        Log::fatal() << "Aborting due to missing input(s)";
+        throw std::runtime_error("missing inputs");
     }
 
     Log::info() << "Combinator ready.";
