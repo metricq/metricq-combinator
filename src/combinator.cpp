@@ -130,6 +130,8 @@ void Combinator::on_transformer_ready()
 
     for (const auto& elem : combined_metrics_)
     {
+        // Delete metadata from manager for metrics that we are responsible for instead
+        metadata_.erase(elem.first);
         resolver_queue.emplace(&elem);
     }
 
