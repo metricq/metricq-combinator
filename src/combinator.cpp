@@ -80,6 +80,23 @@ void Combinator::on_transformer_config(const metricq::json& config)
         // Register the combined metric as a new source metric
         auto& metric = (*this)[combined_name];
 
+        if (combined_config.count("chunk_size"))
+        {
+            auto chunk_size = combined_config["chunk_size"].get<int>();
+            if (chunk_size > 0)
+            {
+                metric.chunk_size(chunk_size);
+                Log::debug() << fmt::format("Using chunk_size ({}) for metric '{}'.", chunk_size,
+                                            combined_name);
+            }
+            else
+            {
+                Log::warn() << fmt::format(
+                    "The given chunk_size ({}) for the metric '{}' is invalid. Ignoring.",
+                    chunk_size, combined_name);
+            }
+        }
+
         // Optionally declare metadata for this combined metric, which are
         // sourced from combined_config["metadata"], if the key exists
         if (auto metadata_it = combined_config.find("metadata");
