@@ -120,12 +120,26 @@ void Combinator::on_transformer_config(const metricq::json& config)
 
 void Combinator::on_transformer_ready()
 {
-    // at this point, the metadata of all input metrics is available in this->metadata_
-    // so we can calculate the rate of the combined metrics
+    // At this point, the metadata of all direct input metrics is available in this->metadata_
+    // so we can calculate the rate of the combined metrics.
+    // However, the metedata of input metrics that are combined from the same config may not yet be
+    // available, so we need to be able to defer these metrics.
     bool missing_inputs = false;
 
-    for (auto& [combined_name, metric_container] : combined_metrics_)
+    std::queue<const CombinedMetricByName::value_type*> resolver_queue;
+
+    for (const auto& elem : combined_metrics_)
     {
+        resolver_queue.emplace(&elem);
+    }
+
+    std::size_t max_deferrals = (resolver_queue.size() - 2) * (resolver_queue.size() - 1) / 2;
+    while (!resolver_queue.empty())
+    {
+        auto current_queue_element = resolver_queue.front();
+        auto& [combined_name, metric_container] = *current_queue_element;
+        resolver_queue.pop();
+
         auto& metric = get_combined_metric(combined_name);
 
         // do not overwrite if rate was already set in the config
@@ -135,13 +149,29 @@ void Combinator::on_transformer_ready()
 
             for (auto& [input_metric, input_nodes] : metric_container.inputs)
             {
-                // if rate was not set, this returns NaN, which will propragate through
+                // if rate was not set, this returns NaN, which will propagate through
                 try
                 {
                     rate = std::max(rate, metadata_.at(input_metric).rate());
                 }
                 catch (const std::out_of_range&)
                 {
+                    if (combined_metrics_.count(input_metric))
+                    {
+                        Log::info() << "deferring resolving of indirectly combined metric "
+                                    << combined_name << " due to yet missing " << input_metric;
+                        resolver_queue.emplace(current_queue_element);
+                        if (max_deferrals == 0)
+                        {
+                            Log::fatal() << "Maximum deferral count exceeded. Is there a circular "
+                                            "dependency in your combinator config?";
+                            throw std::runtime_error("could not resolve metric dependencies");
+                        }
+                        max_deferrals--;
+                        // It was PHILIPP!!!
+                        goto continue_main_loop;
+                    }
+
                     Log::error() << "Missing input " << input_metric << " for combined "
                                  << combined_name;
                     missing_inputs = true;
@@ -153,6 +183,9 @@ void Combinator::on_transformer_ready()
                 metric.metadata.rate(rate);
             }
         }
+        metadata_[combined_name] = metric.metadata;
+        // It was PHILIPP!!!
+    continue_main_loop:;
     }
 
     if (missing_inputs)
