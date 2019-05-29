@@ -75,6 +75,11 @@ declaring the new metric.  Commonly used metadata-keys are:
    ``"expression"``-key, i.e. a short description on how this metric is derived
    from its inputs, in infix-notation.
 
+``"rate"``
+   A number describing the rate (in *Hz*) at which this metric is expected to
+   produce values.  For example, a metric with ``"rate": 0.2`` should report a
+   new value every *~5 seconds*, i.e. at a rate of *1/5 Hz*.
+
 Examples
 --------
 
