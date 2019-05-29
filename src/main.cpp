@@ -19,6 +19,7 @@
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "combinator.hpp"
 
+#include <metricq/exception.hpp>
 #include <metricq/logger/nitro.hpp>
 
 #include <nitro/broken_options/parser.hpp>
@@ -109,6 +110,11 @@ int main(int argc, const char* argv[])
     catch (const CombinedMetric::ParseError& e)
     {
         Log::error() << "Error parsing options: " << e.what();
+        return EXIT_FAILURE;
+    }
+    catch (const metricq::RPCError& e)
+    {
+        Log::error() << "RPC error: " << e.what();
         return EXIT_FAILURE;
     }
     catch (const std::exception& e)
