@@ -1,6 +1,8 @@
 [submodule "lib/fmt"]
 	path = lib/fmt
 	url = https://github.com/fmtlib/fmt.git
+    ignore = dirty
 [submodule "lib/metricq"]
 	path = lib/metricq
 	url = https://github.com/metricq/metricq.git
+    ignore = dirty
