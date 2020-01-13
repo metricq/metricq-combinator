@@ -50,24 +50,36 @@ Combinator::~Combinator()
 
 void Combinator::on_transformer_config(const metricq::json& config)
 {
+    this->input_metrics.clear();
+    CombinedMetricByName updated_combined_metrics;
+
     Log::trace() << "config: " << config;
     auto& combined_metrics = config.at("metrics");
     for (auto it = combined_metrics.begin(); it != combined_metrics.end(); ++it)
     {
         auto& combined_config = it.value();
         auto combined_name = it.key();
+        auto& combined_expression = combined_config.at("expression");
 
-        auto [container_it, success] = combined_metrics_.emplace(
-            combined_name, CombinedMetricContainer::from_config(combined_config.at("expression")));
-
-        if (!success)
+        // Check if combined metric is already present and that its configuration did not change.
+        // If yes, we can simply reuse the already existing combined metric and do not lose any of
+        // its state.
+        if (auto metric_it = combined_metrics_.find(combined_name);
+            metric_it != combined_metrics_.end() &&
+            metric_it->second.expression() == combined_expression)
         {
-            Log::error() << "Multiple definitions of combined metric '" << combined_name
-                         << "', ignoring duplicates";
-            continue;
+            Log::info() << "Configuration for combined metric '" << combined_name
+                        << "' did not change";
+            auto preserved = combined_metrics_.extract(metric_it);
+            updated_combined_metrics.insert(std::move(preserved));
         }
-
-        auto& combined_metric = container_it->second.metric;
+        else
+        {
+            Log::info() << "Updating configuration for combined metric '" << combined_name << "'";
+            updated_combined_metrics.emplace(
+                combined_name, CombinedMetricContainer::from_config(combined_expression));
+        }
+        auto& combined_metric = updated_combined_metrics.at(combined_name).metric;
 
         Log::info() << "Deriving new metric: " << combined_name;
 
@@ -116,6 +128,8 @@ void Combinator::on_transformer_config(const metricq::json& config)
             }
         }
     }
+
+    this->combined_metrics_.swap(updated_combined_metrics);
 }
 
 void Combinator::on_transformer_ready()
@@ -205,7 +219,7 @@ void Combinator::on_data(const std::string& input_metric, const metricq::DataChu
 
     for (auto& [combined_name, metric_container] : combined_metrics_)
     {
-        auto& [combined_metric, inputs_by_name] = metric_container;
+        auto& [combined_metric, inputs_by_name, _config] = metric_container;
 
         Log::trace() << fmt::format("Checking whether combined metric {} depends on {}...",
                                     combined_name, input_metric);

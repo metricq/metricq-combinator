@@ -49,7 +49,7 @@ private:
     {
     private:
         CombinedMetricContainer(const metricq::json& config)
-        : metric(config), inputs(metric.collect_metric_inputs())
+        : metric(config), inputs(metric.collect_metric_inputs()), expression_(config)
         {
         }
 
@@ -59,8 +59,14 @@ private:
             return CombinedMetricContainer(config);
         }
 
+        const metricq::json& expression() const
+        {
+            return expression_;
+        }
+
         CombinedMetric metric;
         MetricInputNodesByName inputs;
+        metricq::json expression_;
     };
 
     using CombinedMetricByName = std::unordered_map<MetricName, CombinedMetricContainer>;
