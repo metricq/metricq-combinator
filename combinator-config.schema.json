@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MetricQ combinator configuration",
+  "definitions": {
+    "operation": {
+      "type": "string",
+      "description": "The name of an operation which combines incoming values"
+    },
+    "binaryExpression": {
+      "type": "object",
+      "description": "A binary expression, combining two streams of values",
+      "properties": {
+        "operation": {
+          "enum": [
+            "+",
+            "-",
+            "*",
+            "/"
+          ]
+        },
+        "left": {
+          "$ref": "#/definitions/expression"
+        },
+        "right": {
+          "$ref": "#/definitions/expression"
+        }
+      },
+      "required": [
+        "operation",
+        "left",
+        "right"
+      ]
+    },
+    "unaryExpression": {
+      "type": "object",
+      "description": "A unary expression, transforming one stream of input values",
+      "properties": {
+        "operation": {
+          "enum": [
+            "throttle"
+          ]
+        },
+        "cooldown_period": {
+          "type": "string",
+          "description": "Duration after producing a value for which input values are ignored",
+          "pattern": "^\\s*([+-]?\\d*[.,]?\\d+)\\s*([^\\d]*)\\s*$"
+        },
+        "input": {
+          "$ref": "#/definitions/expression"
+        }
+      },
+      "required": [
+        "operation",
+        "cooldown_period",
+        "input"
+      ]
+    },
+    "variadicExpression": {
+      "type": "object",
+      "description": "A variadic expression, transforming multiple streams of input values",
+      "properties": {
+        "operation": {
+          "enum": [
+            "min",
+            "max",
+            "sum"
+          ]
+        },
+        "inputs": {
+          "type": "array",
+          "description": "A list of expressions describing the inputs to this operation",
+          "items": {
+            "$ref": "#/definitions/expression"
+          }
+        }
+      },
+      "required": [
+        "operation",
+        "inputs"
+      ]
+    },
+    "expression": {
+      "description": "The expression tree describing how this metric is combined from its inputs",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "The name of an input metric subscribed from MetricQ"
+        },
+        {
+          "type": "number",
+          "description": "An input producing a constant value"
+        },
+        {
+          "$ref": "#/definitions/unaryExpression"
+        },
+        {
+          "$ref": "#/definitions/binaryExpression"
+        },
+        {
+          "$ref": "#/definitions/variadicExpression"
+        }
+      ],
+      "required": [
+        "operation"
+      ]
+    },
+    "metricConfig": {
+      "type": "object",
+      "description": "Configuration of a metric produced by the combinator",
+      "properties": {
+        "expression": {
+          "$ref": "#/definitions/expression"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Arbitrary metadata attached to this combined metric",
+          "properties": {
+            "unit": {
+              "type": "string",
+              "description": "The SI unit symbol in which this metric reports values"
+            },
+            "display_expression": {
+              "type": "string",
+              "description": "A human-readable version of this metrics expression-key, i.e. a short description on how this metric is derived from its inputs, in infix-notation"
+            }
+          },
+          "patternProperties": {
+            "^description$": {
+              "type": "string",
+              "description": "A human-readable description of what values this metric reports"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "metrics": {
+      "type": "object",
+      "patternProperties": {
+        "^([a-zA-Z][a-zA-Z0-9_]+\\.)+[a-zA-Z][a-zA-Z0-9_]+$": {
+          "$ref": "#/definitions/metricConfig"
+        }
+      }
+    },
+    "_id": {
+      "type": "string",
+      "description": "CouchDB document name"
+    },
+    "_rev": {
+      "type": "string",
+      "description": "CouchDB revision id"
+    }
+  },
+  "required": [
+    "metrics"
+  ]
+}
