@@ -4,5 +4,5 @@
     ignore = dirty
 [submodule "lib/metricq"]
 	path = lib/metricq
-	url = https://github.com/metricq/metricq.git
+	url = https://github.com/metricq/metricq-cpp.git
     ignore = dirty
