@@ -21,6 +21,7 @@
 
 #include <metricq/exception.hpp>
 #include <metricq/logger/nitro.hpp>
+#include <metricq/version.hpp>
 
 #include <nitro/broken_options/parser.hpp>
 
@@ -103,6 +104,7 @@ int main(int argc, const char* argv[])
             options.get("token"),
         };
 
+        Log::info() << "MetricQ version " << metricq::version();
         Log::info() << "starting main loop...";
         combinator.main_loop();
         Log::info() << "stopped.";
