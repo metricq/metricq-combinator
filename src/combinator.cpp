@@ -21,6 +21,7 @@
 
 #include <metricq/logger/nitro.hpp>
 #include <metricq/source.hpp>
+#include <metricq/utils.hpp>
 
 #include <fmt/format.h>
 
@@ -118,7 +119,7 @@ void Combinator::on_transformer_config(const metricq::json& config)
             if (metadata.is_object())
             {
                 Log::debug() << "Declaring metadata for metric " << combined_name << ": "
-                             << metadata.dump();
+                             << truncate_string(metadata.dump(), 100);
                 metric.metadata.json(metadata);
             }
             else
