@@ -119,7 +119,7 @@ void Combinator::on_transformer_config(const metricq::json& config)
             if (metadata.is_object())
             {
                 Log::debug() << "Declaring metadata for metric " << combined_name << ": "
-                             << truncate_string(metadata.dump(), 100);
+                             << metricq::truncate_string(metadata.dump(), 100);
                 metric.metadata.json(metadata);
             }
             else
