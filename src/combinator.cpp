@@ -51,7 +51,7 @@ Combinator::~Combinator()
 
 void Combinator::on_transformer_config(const metricq::json& config)
 {
-    this->input_metrics.clear();
+    input_metrics.clear();
     CombinedMetricByName updated_combined_metrics;
 
     Log::trace() << "config: " << config;
@@ -82,12 +82,12 @@ void Combinator::on_transformer_config(const metricq::json& config)
         }
         auto& combined_metric = updated_combined_metrics.at(combined_name).metric;
 
-        Log::info() << "Deriving new metric: " << combined_name;
+        Log::debug() << "Deriving new metric: " << combined_name;
 
         // Register input metrics with sink
         for (const auto& [input_name, _] : combined_metric.collect_metric_inputs())
         {
-            input_metrics.emplace_back(input_name);
+            input_metrics.emplace(input_name);
         }
 
         // Register the combined metric as a new source metric
