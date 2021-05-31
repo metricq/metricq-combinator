@@ -24,7 +24,7 @@ target_link_libraries(metricq-combinator-lib
         metricq::transformer
         metricq::logger-nitro
         fmt::fmt
-        Nitro::core
+        Nitro::options
 )
 
 target_compile_features(metricq-combinator-lib PUBLIC cxx_std_17)
