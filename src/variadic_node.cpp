@@ -20,6 +20,8 @@
 
 #include "variadic_node.hpp"
 
+#include <cmath>
+
 void VariadicNode::update()
 {
     for (auto& input : input_nodes_)
@@ -39,7 +41,10 @@ void VariadicNode::update()
         {
             auto tv = input_node->peek();
             input_time_points.emplace_back(tv.time);
-            input_values.emplace_back(tv.value);
+            if (!std::isnan(tv.value))
+            {
+                input_values.emplace_back(tv.value);
+            }
         }
 
         // Figure out the time all inputs agree on
@@ -61,6 +66,13 @@ void VariadicNode::update()
             {
                 assert(time > new_time);
             }
+        }
+
+        if (input_values.empty())
+        {
+            // All values are NaN
+            put(metricq::TimeValue{ new_time, std::nan("") });
+            return;
         }
 
         auto new_value = combine(input_values);

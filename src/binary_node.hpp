@@ -23,6 +23,7 @@
 
 #include <metricq/types.hpp>
 
+#include <cmath>
 #include <memory>
 #include <utility>
 
@@ -48,6 +49,14 @@ class AddNode : public BinaryNode
 {
     metricq::Value combine(metricq::Value a, metricq::Value b) override
     {
+        if (std::isnan(a))
+        {
+            return b;
+        }
+        if (std::isnan(b))
+        {
+            return a;
+        }
         return a + b;
     }
 
