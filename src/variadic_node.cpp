@@ -24,6 +24,22 @@
 
 void VariadicNode::update()
 {
+    /*
+     * For practical reasons, we give NaNs a special interpretation here:
+     *
+     * In particular, in practice, we often encounter the situation where a metric cannot be
+     * read from the measurement device by the source, but the source itself is running fine. In
+     * this situation, it is likely that the physical phenomenon can be assumed as non-existant.
+     * For example, the power consumption of a PDU is zero, if the PDU failed. In such cases,
+     * our source implementations will send NaNs as values.
+     *
+     * With this in mind, we treat NaNs in summations (and min()/max()) of metrics as zero, as
+     * long as, there is at least a single metric with a non-NaN (including +-infinity) number.
+     *
+     * Note: This is not based on rigid mathematical definitions, but the reality of our setup.
+     * Hence, NaNs aren't treated differently for the other operations.
+     */
+
     for (auto& input : input_nodes_)
     {
         input->update();
