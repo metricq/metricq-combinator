@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Protobuf
         run: |
           sudo apt update
@@ -37,7 +37,7 @@ jobs:
         xcode: [default, "13.4.1"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Protobuf
         run: |
           brew install protobuf openssl@1.1
