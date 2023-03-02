@@ -40,3 +40,5 @@ install(TARGETS metricq-combinator RUNTIME DESTINATION bin)
 
 include(CTest)
 add_subdirectory(tests)
+
+include(CPack)
