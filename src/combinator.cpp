@@ -26,6 +26,7 @@
 #include <fmt/format.h>
 
 #include <numeric>
+#include <stdexcept>
 #include <unordered_set>
 
 using Log = metricq::logger::nitro::Log;
@@ -50,45 +51,102 @@ Combinator::~Combinator()
 {
 }
 
-std::string displayExpression(const nlohmann::json& expression) {
-    static const std::unordered_set<std::string> validOperators = { "+", "-", "*", "/" };
-
-    // Check if the expression is a number and return it as a string
-    if (expression.is_number()) {
-        double value = expression.get<double>();
-        return (value == static_cast<int>(value)) ? std::to_string(static_cast<int>(value)) : std::to_string(value);
+std::string handleBasicExpression(const nlohmann::json& expression)
+{
+    if (expression.is_number())
+    {
+        auto value = expression.get<double>();
+        return (value == static_cast<int>(value)) ? std::to_string(static_cast<int>(value)) :
+                                                    std::to_string(value);
     }
 
-    if (expression.is_object() && expression.contains("operation")) {
-        std::string operation = expression.value("operation", "");
-
-        // Validate if the operation is supported
-        if (validOperators.find(operation) == validOperators.end()) {
-            return operation;
-        }
-
-        // Helper lambda to process operands
-        auto processOperand = [&](const std::string& key) -> std::string {
-            if (expression.contains(key)) {
-                const auto& operand = expression[key];
-                if (operand.is_string()) return operand.get<std::string>();
-                if (operand.is_number()) return std::to_string(operand.get<int>());
-                return displayExpression(operand);
-            }
-            return "";
-        };
-
-        std::string leftStr = processOperand("left");
-        std::string rightStr = processOperand("right");
-        return operation + (leftStr.empty() ? "" : " " + leftStr) + (rightStr.empty() ? "" : " " + rightStr);
-    }
-
-    // If the expression is a string, return it directly
-    if (expression.is_string()) {
+    if (expression.is_string())
+    {
         return expression.get<std::string>();
     }
 
-    return "Unknown expression format";
+    throw std::runtime_error("Expression is not a basic type (number or string)!");
+}
+
+std::string handleOperatorExpression(const std::string& operation, const std::string& leftStr,
+                                     const std::string& rightStr)
+{
+    static const std::unordered_set<std::string> validOperators = { "+", "-", "*", "/" };
+
+    if (validOperators.find(operation) == validOperators.end())
+    {
+        throw std::runtime_error("Invalid operator: " + operation);
+    }
+
+    return operation + (leftStr.empty() ? "" : " " + leftStr) +
+           (rightStr.empty() ? "" : " " + rightStr);
+}
+
+std::string handleAggregateExpression(const std::string& operation,
+                                      const std::vector<std::string>& inputs)
+{
+    static const std::unordered_set<std::string> validAggregates = { "sum", "min", "max" };
+
+    if (validAggregates.find(operation) == validAggregates.end())
+    {
+        throw std::runtime_error("Invalid aggregate operation: " + operation);
+    }
+
+    if (inputs.empty())
+    {
+        throw std::logic_error("Aggregate operation missing inputs!");
+    }
+
+    auto input = std::accumulate(std::next(inputs.begin()), inputs.end(), inputs[0],
+                                 [](std::string a, const std::string& b) { return a + ", " + b; });
+
+    return operation + ": [" + input + "]";
+}
+
+std::string displayExpression(const nlohmann::json& expression)
+{
+    if (expression.is_number() || expression.is_string())
+    {
+        return handleBasicExpression(expression);
+    }
+
+    if (!expression.is_object() || !expression.contains("operation"))
+    {
+        throw std::runtime_error("Unknown expression format!");
+    }
+
+    std::string operation = expression.value("operation", "");
+
+    if (operation == "throttle")
+    {
+        return operation;
+    }
+
+    if (expression.contains("left") || expression.contains("right"))
+    {
+        std::string leftStr =
+            expression.contains("left") ? displayExpression(expression["left"]) : "";
+        std::string rightStr =
+            expression.contains("right") ? displayExpression(expression["right"]) : "";
+        return handleOperatorExpression(operation, leftStr, rightStr);
+    }
+
+    if (expression.contains("inputs"))
+    {
+        if (!expression["inputs"].is_array())
+        {
+            throw std::logic_error("Inputs must be an array!");
+        }
+
+        std::vector<std::string> inputStrings;
+        for (const auto& input : expression["inputs"])
+        {
+            inputStrings.push_back(displayExpression(input));
+        }
+        return handleAggregateExpression(operation, inputStrings);
+    }
+
+    throw std::runtime_error("Unsupported operation type: " + operation);
 }
 
 void Combinator::on_transformer_config(const metricq::json& config)
