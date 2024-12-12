@@ -71,19 +71,25 @@ std::string handleBasicExpression(const nlohmann::json& expression)
 std::string handleOperatorExpression(const std::string& operation, const std::string& leftStr,
                                      const std::string& rightStr)
 {
-    static const std::unordered_set<std::string> validOperators = { "+", "-", "*", "/" };
-
-    if (validOperators.find(operation) == validOperators.end())
+    if (operation.size() > 1)
     {
-        throw std::runtime_error("Invalid operator: " + operation);
+        throw std::logic_error("Invalid operator length!");
     }
 
-    return operation + (leftStr.empty() ? "" : " " + leftStr) +
-           (rightStr.empty() ? "" : " " + rightStr);
+    switch (operation[0])
+    {
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+        return "(" + leftStr + " " + operation + " " + rightStr + ")";
+    default:
+        throw std::runtime_error("Invalid operator: " + operation);
+    }
 }
 
-std::string handleAggregateExpression(const std::string& operation,
-                                      const std::vector<std::string>& inputs)
+std::string handleCombinationExpression(const std::string& operation,
+                                        const std::vector<std::string>& inputs)
 {
     static const std::unordered_set<std::string> validAggregates = { "sum", "min", "max" };
 
@@ -100,10 +106,10 @@ std::string handleAggregateExpression(const std::string& operation,
     auto input = std::accumulate(std::next(inputs.begin()), inputs.end(), inputs[0],
                                  [](std::string a, const std::string& b) { return a + ", " + b; });
 
-    return operation + ": [" + input + "]";
+    return operation + "[" + input + "]";
 }
 
-std::string displayExpression(const nlohmann::json& expression)
+std::string Combinator::displayExpression(const nlohmann::json& expression)
 {
     if (expression.is_number() || expression.is_string())
     {
@@ -119,15 +125,17 @@ std::string displayExpression(const nlohmann::json& expression)
 
     if (operation == "throttle")
     {
-        return operation;
+        if (!expression.contains("input"))
+        {
+            throw std::logic_error("Throttle does not contain a input");
+        }
+        return handleBasicExpression(expression["input"]);
     }
 
-    if (expression.contains("left") || expression.contains("right"))
+    if (expression.contains("left") && expression.contains("right"))
     {
-        std::string leftStr =
-            expression.contains("left") ? displayExpression(expression["left"]) : "";
-        std::string rightStr =
-            expression.contains("right") ? displayExpression(expression["right"]) : "";
+        std::string leftStr = displayExpression(expression["left"]);
+        std::string rightStr = displayExpression(expression["right"]);
         return handleOperatorExpression(operation, leftStr, rightStr);
     }
 
@@ -143,7 +151,7 @@ std::string displayExpression(const nlohmann::json& expression)
         {
             inputStrings.push_back(displayExpression(input));
         }
-        return handleAggregateExpression(operation, inputStrings);
+        return handleCombinationExpression(operation, inputStrings);
     }
 
     throw std::runtime_error("Unsupported operation type: " + operation);
