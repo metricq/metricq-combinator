@@ -32,7 +32,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-latest, macos-large-latest]
+        os: [macos-latest, macos-latest-xlarge]
         xcode: [default, "16.1.0"]
 
     runs-on: ${{ matrix.os }}
