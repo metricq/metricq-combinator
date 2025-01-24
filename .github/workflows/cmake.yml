@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          [g++-9, g++-10, g++-11, g++-12, clang++-12, clang++-13, clang++-14]
+          [g++-12, g++-13, g++-14, clang++-16, clang++-17, clang++-18]
 
     runs-on: ubuntu-latest
 
@@ -30,11 +30,12 @@ jobs:
         run: ctest .
 
   build-macos:
-    runs-on: macos-latest
-
     strategy:
       matrix:
-        xcode: [default, "13.4.1"]
+        os: [macos-latest, macos-13]
+        xcode: [default]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
