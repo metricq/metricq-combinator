@@ -26,6 +26,8 @@
 #include <fmt/format.h>
 
 #include <numeric>
+#include <stdexcept>
+#include <unordered_set>
 
 using Log = metricq::logger::nitro::Log;
 
@@ -47,6 +49,112 @@ Combinator::Combinator(const std::string& manager_host, const std::string& token
 
 Combinator::~Combinator()
 {
+}
+
+std::string handleBasicExpression(const nlohmann::json& expression)
+{
+    if (expression.is_number())
+    {
+        auto value = expression.get<double>();
+        return (value == static_cast<int>(value)) ? std::to_string(static_cast<int>(value)) :
+                                                    std::to_string(value);
+    }
+
+    if (expression.is_string())
+    {
+        return expression.get<std::string>();
+    }
+
+    throw std::runtime_error("Expression is not a basic type (number or string)!");
+}
+
+std::string handleOperatorExpression(const std::string& operation, const std::string& leftStr,
+                                     const std::string& rightStr)
+{
+    if (operation.size() > 1)
+    {
+        throw std::logic_error("Invalid operator length!");
+    }
+
+    switch (operation[0])
+    {
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+        return "(" + leftStr + " " + operation + " " + rightStr + ")";
+    default:
+        throw std::runtime_error("Invalid operator: " + operation);
+    }
+}
+
+std::string handleCombinationExpression(const std::string& operation,
+                                        const std::vector<std::string>& inputs)
+{
+    static const std::unordered_set<std::string> validAggregates = { "sum", "min", "max" };
+
+    if (validAggregates.find(operation) == validAggregates.end())
+    {
+        throw std::runtime_error("Invalid aggregate operation: " + operation);
+    }
+
+    if (inputs.empty())
+    {
+        throw std::logic_error("Aggregate operation missing inputs!");
+    }
+
+    auto input = std::accumulate(std::next(inputs.begin()), inputs.end(), inputs[0],
+                                 [](std::string a, const std::string& b) { return a + ", " + b; });
+
+    return operation + "[" + input + "]";
+}
+
+std::string Combinator::displayExpression(const nlohmann::json& expression)
+{
+    if (expression.is_number() || expression.is_string())
+    {
+        return handleBasicExpression(expression);
+    }
+
+    if (!expression.is_object() || !expression.contains("operation"))
+    {
+        throw std::runtime_error("Unknown expression format!");
+    }
+
+    std::string operation = expression.value("operation", "");
+
+    if (operation == "throttle")
+    {
+        if (!expression.contains("input"))
+        {
+            throw std::logic_error("Throttle does not contain a input");
+        }
+        return handleBasicExpression(expression["input"]);
+    }
+
+    if (expression.contains("left") && expression.contains("right"))
+    {
+        std::string leftStr = displayExpression(expression["left"]);
+        std::string rightStr = displayExpression(expression["right"]);
+        return handleOperatorExpression(operation, leftStr, rightStr);
+    }
+
+    if (expression.contains("inputs"))
+    {
+        if (!expression["inputs"].is_array())
+        {
+            throw std::logic_error("Inputs must be an array!");
+        }
+
+        std::vector<std::string> inputStrings;
+        for (const auto& input : expression["inputs"])
+        {
+            inputStrings.push_back(displayExpression(input));
+        }
+        return handleCombinationExpression(operation, inputStrings);
+    }
+
+    throw std::runtime_error("Unsupported operation type: " + operation);
 }
 
 void Combinator::on_transformer_config(const metricq::json& config)
@@ -92,6 +200,15 @@ void Combinator::on_transformer_config(const metricq::json& config)
 
         // Register the combined metric as a new source metric
         auto& metric = (*this)[combined_name];
+
+        try
+        {
+            metric.metadata["displayExpression"] = displayExpression(combined_expression);
+        }
+        catch (std::runtime_error&)
+        {
+            Log::error("Failed to create the Display Expression");
+        }
 
         if (combined_config.count("chunk_size"))
         {
