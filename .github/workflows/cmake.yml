@@ -1,6 +1,14 @@
 name: C++ Build
 
-on: [push]
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*"
+  pull_request:
+  workflow_dispatch:
+
 
 jobs:
   build-ubuntu:
