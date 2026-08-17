@@ -15,6 +15,8 @@ set(SRCS
     src/binary_node.cpp
     src/variadic_node.cpp
     src/combined_metric.cpp
+    src/metadata_defaults.cpp
+    src/metadata_resolution.cpp
     src/combinator.cpp
 )
 

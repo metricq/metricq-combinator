@@ -6,3 +6,21 @@ target_link_libraries(
     PRIVATE
         metricq-combinator-lib
 )
+
+add_executable(metricq-combinator.test_metadata_defaults test_metadata_defaults.cpp)
+add_test(metricq-combinator.test_metadata_defaults metricq-combinator.test_metadata_defaults)
+
+target_link_libraries(
+    metricq-combinator.test_metadata_defaults
+    PRIVATE
+        metricq-combinator-lib
+)
+
+add_executable(metricq-combinator.test_metadata_resolution test_metadata_resolution.cpp)
+add_test(metricq-combinator.test_metadata_resolution metricq-combinator.test_metadata_resolution)
+
+target_link_libraries(
+    metricq-combinator.test_metadata_resolution
+    PRIVATE
+        metricq-combinator-lib
+)
