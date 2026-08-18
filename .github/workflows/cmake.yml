@@ -29,7 +29,7 @@ jobs:
       - name: Run CMake configure
         env:
           CXX: ${{ matrix.compiler }}
-        run: cmake .
+        run: cmake . -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       - uses: ammaraskar/gcc-problem-matcher@master
         if: ${{ startsWith( matrix.compiler, 'g++') }}
       - name: Build
@@ -54,7 +54,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
         if: matrix.xcode != 'default'
       - name: Run CMake configure
-        run: cmake . -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1/
+        run: cmake . -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/ -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       - name: Build
         run: make
       - name: Run CTest
