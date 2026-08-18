@@ -40,7 +40,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-latest, macos-13]
+        os: [macos-latest, macos-14, macos-15]
         xcode: [default]
 
     runs-on: ${{ matrix.os }}
