@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "combinator.hpp"
+#include "metadata_resolution.hpp"
 
 #include <metricq/logger/nitro.hpp>
 #include <metricq/source.hpp>
@@ -110,6 +111,13 @@ void Combinator::on_transformer_config(const metricq::json& config)
             }
         }
 
+        // Rebuild this metric's metadata from scratch every time, even if the combined
+        // metric itself was reused unchanged: the underlying Metric object persists across
+        // reconfigurations, so without a reset, defaults derived (in on_transformer_ready)
+        // from a previous configuration's inputs would survive and be mistaken for
+        // explicitly configured values.
+        metric.metadata.json(metricq::json::object());
+
         // Optionally declare metadata for this combined metric, which are
         // sourced from combined_config["metadata"], if the key exists
         if (auto metadata_it = combined_config.find("metadata");
@@ -138,74 +146,39 @@ void Combinator::on_transformer_ready()
     // At this point, the metadata of all direct input metrics is available in this->metadata_
     // so we can calculate the rate of the combined metrics.
     // However, the metedata of input metrics that are combined from the same config may not yet be
-    // available, so we need to be able to defer these metrics.
-    bool missing_inputs = false;
+    // available, so combinator::resolve_combined_metadata() defers those.
+    std::unordered_map<std::string, std::vector<std::string>> combined_metric_inputs;
+    std::unordered_map<std::string, metricq::Metadata> explicit_metadata;
 
-    std::queue<const CombinedMetricByName::value_type*> resolver_queue;
-
-    for (const auto& elem : combined_metrics_)
+    for (const auto& [combined_name, metric_container] : combined_metrics_)
     {
         // Delete metadata from manager for metrics that we are responsible for instead
-        metadata_.erase(elem.first);
-        resolver_queue.emplace(&elem);
-    }
+        metadata_.erase(combined_name);
 
-    std::size_t max_deferrals = (resolver_queue.size() - 2) * (resolver_queue.size() - 1) / 2;
-    while (!resolver_queue.empty())
-    {
-        auto current_queue_element = resolver_queue.front();
-        auto& [combined_name, metric_container] = *current_queue_element;
-        resolver_queue.pop();
-
-        auto& metric = get_combined_metric(combined_name);
-
-        // do not overwrite if rate was already set in the config
-        if (std::isnan(metric.metadata.rate()))
+        std::vector<std::string> inputs;
+        inputs.reserve(metric_container.inputs.size());
+        for (const auto& [input_metric, input_nodes] : metric_container.inputs)
         {
-            auto rate = 0.;
-
-            for (auto& [input_metric, input_nodes] : metric_container.inputs)
-            {
-                // if rate was not set, this returns NaN, which will propagate through
-                try
-                {
-                    rate = std::max(rate, metadata_.at(input_metric).rate());
-                }
-                catch (const std::out_of_range&)
-                {
-                    if (combined_metrics_.count(input_metric))
-                    {
-                        Log::info() << "deferring resolving of indirectly combined metric "
-                                    << combined_name << " due to yet missing " << input_metric;
-                        resolver_queue.emplace(current_queue_element);
-                        if (max_deferrals == 0)
-                        {
-                            Log::fatal() << "Maximum deferral count exceeded. Is there a circular "
-                                            "dependency in your combinator config?";
-                            throw std::runtime_error("could not resolve metric dependencies");
-                        }
-                        max_deferrals--;
-                        // It was PHILIPP!!!
-                        goto continue_main_loop;
-                    }
-
-                    Log::error() << "Missing input " << input_metric << " for combined "
-                                 << combined_name;
-                    missing_inputs = true;
-                }
-            }
-
-            if (!std::isnan(rate))
-            {
-                metric.metadata.rate(rate);
-            }
+            (void)input_nodes;
+            inputs.push_back(input_metric);
         }
-        metadata_[combined_name] = metric.metadata;
-        // It was PHILIPP!!!
-    continue_main_loop:;
+        combined_metric_inputs.emplace(combined_name, std::move(inputs));
+
+        // Explicit config metadata, as set (and reset every reconfiguration) in
+        // on_transformer_config().
+        explicit_metadata.emplace(combined_name, get_combined_metric(combined_name).metadata);
     }
 
-    if (missing_inputs)
+    auto resolution =
+        combinator::resolve_combined_metadata(combined_metric_inputs, explicit_metadata, metadata_);
+
+    for (auto& [combined_name, metadata] : resolution.metadata)
+    {
+        get_combined_metric(combined_name).metadata = metadata;
+        metadata_[combined_name] = std::move(metadata);
+    }
+
+    if (resolution.missing_inputs)
     {
         Log::fatal() << "Aborting due to missing input(s)";
         throw std::runtime_error("missing inputs");
