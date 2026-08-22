@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU General Public License
 // along with metricq-combinator.  If not, see <http://www.gnu.org/licenses/>.
 #include "combinator.hpp"
+#include "display_expression.hpp"
 
 #include <metricq/logger/nitro.hpp>
 #include <metricq/source.hpp>
@@ -25,7 +26,7 @@
 
 #include <fmt/format.h>
 
-#include <numeric>
+#include <stdexcept>
 
 using Log = metricq::logger::nitro::Log;
 
@@ -92,6 +93,17 @@ void Combinator::on_transformer_config(const metricq::json& config)
 
         // Register the combined metric as a new source metric
         auto& metric = (*this)[combined_name];
+
+        try
+        {
+            metric.metadata["displayExpression"] = displayExpression(combined_expression);
+        }
+        catch (const std::runtime_error& e)
+        {
+            Log::error() << fmt::format(
+                "Failed to create the Display Expression, metric: {}, error: {}", metric.id(),
+                e.what());
+        }
 
         if (combined_config.count("chunk_size"))
         {
