@@ -24,3 +24,16 @@ target_link_libraries(
     PRIVATE
         metricq-combinator-lib
 )
+
+# Manual generator for the checked-in Go differential-test fixtures. It is not
+# a CTest test: normal Go tests consume the generated JSON and do not require a
+# C++ build.
+add_executable(
+    metricq-combinator.generate_go_fixtures
+    ../../metricq-gombinator/combinator/testdata/generate_expected.cpp
+)
+target_link_libraries(
+    metricq-combinator.generate_go_fixtures
+    PRIVATE
+        metricq-combinator-lib
+)
